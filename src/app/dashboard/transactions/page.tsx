@@ -175,7 +175,10 @@ export default function AdminDashboard() {
               }) => (
                 <tr
                   key={id}
-                  className="border-b border-slate-50 hover:bg-slate-50 transition-colors"
+                  className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() =>
+                    (window.location.href = `/dashboard/transactions/${id}`)
+                  }
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">

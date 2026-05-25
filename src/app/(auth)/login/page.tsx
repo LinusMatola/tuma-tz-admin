@@ -62,7 +62,7 @@ export default function LoginPage() {
             <button
               onClick={handleSubmit}
               disabled={submitted}
-              className="w-full py-3.5 rounded-xl text-white text-sm font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
+              className="w-full py-3.5 rounded-xl text-white text-sm font-bold tracking-widest uppercase flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
               style={{
                 background: "linear-gradient(135deg, #1a3de4, #1230b8)",
               }}
