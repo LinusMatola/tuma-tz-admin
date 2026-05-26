@@ -11,13 +11,33 @@ import {
   BookOpen,
   LogOut,
   Plus,
+  ChevronDown,
+  BarChart2,
+  ShieldAlert,
 } from "lucide-react";
+import { useState } from "react";
 
 const navItems = [
   { label: "Transactions", icon: LayoutGrid, href: "/dashboard/transactions" },
   { label: "Merchants", icon: Store, href: "/dashboard/merchants" },
   { label: "Settlements", icon: Landmark, href: "/dashboard/settlements" },
   { label: "Support", icon: Headphones, href: "/dashboard/support" },
+  {
+    label: "Overview",
+    icon: BarChart2,
+    children: [
+      {
+        label: "Monitoring",
+        icon: BarChart2,
+        href: "/dashboard/overview/monitoring",
+      },
+      {
+        label: "Risk & Command",
+        icon: ShieldAlert,
+        href: "/dashboard/overview/risk",
+      },
+    ],
+  },
   { label: "Rules", icon: SlidersHorizontal, href: "/dashboard/rules" },
   { label: "System", icon: Settings, href: "/dashboard/system" },
 ];
@@ -28,9 +48,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [overviewOpen, setOverviewOpen] = useState(true);
 
-  if (pathname === "/dashboard" || pathname === "/dashboard/access-manager")
+  if (pathname === "/dashboard" || pathname === "/dashboard/access-manager") {
     return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-100">
@@ -43,26 +65,75 @@ export default function DashboardLayout({
             Operator V2.4
           </p>
         </div>
+
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ label, icon: Icon, href }) => {
-            const active = pathname === href;
+          {navItems.map((item) => {
+            if (item.children) {
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => setOverviewOpen(!overviewOpen)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon size={17} strokeWidth={1.8} />
+                      {item.label}
+                    </div>
+                    <ChevronDown
+                      size={14}
+                      strokeWidth={2}
+                      className={`transition-transform duration-200 ${overviewOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {overviewOpen && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
+                      {item.children.map(({ label, icon: SubIcon, href }) => {
+                        const active = pathname === href;
+                        return (
+                          <Link
+                            key={href}
+                            href={href}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                              active
+                                ? "bg-blue-50 text-blue-700 border-l-[3px] border-blue-700 pl-[9px]"
+                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                            }`}
+                          >
+                            <SubIcon size={15} strokeWidth={1.8} />
+                            {label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const active = pathname === item.href;
             return (
               <Link
-                key={href}
-                href={href}
+                key={item.href}
+                href={item.href!}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   active
                     ? "bg-blue-50 text-blue-700 border-l-[3px] border-blue-700 pl-[9px]"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
-                <Icon size={17} strokeWidth={1.8} />
-                {label}
+                <item.icon size={17} strokeWidth={1.8} />
+                {item.label}
               </Link>
             );
           })}
         </nav>
+
         <div className="px-3 py-4 border-t border-slate-100 space-y-1">
+          <button className="w-full py-2.5 px-4 rounded-xl bg-blue-700 text-white text-sm font-bold tracking-wide hover:bg-blue-800 transition flex items-center justify-center gap-2 mb-3">
+            <Plus size={15} strokeWidth={2.5} />
+            New Entry
+          </button>
           <Link
             href="/docs"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition"
@@ -79,6 +150,7 @@ export default function DashboardLayout({
           </Link>
         </div>
       </aside>
+
       <div className="flex-1 ml-[220px] flex flex-col min-h-screen">
         <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-20">
           <span className="text-[17px] font-black text-blue-700 tracking-tight">
