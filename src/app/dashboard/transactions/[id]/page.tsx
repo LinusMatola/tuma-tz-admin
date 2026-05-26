@@ -72,6 +72,7 @@ const transactions: Record<string, any> = {
   "TXN-8828-LQA": {
     id: "TXN-8828-LQA",
     merchant: "Zanzibar Spices Ent.",
+    merchantId: "APP-4402-TZ",
     status: "PENDING",
     amount: "185,200.00",
     currency: "TZS",
@@ -121,6 +122,7 @@ const transactions: Record<string, any> = {
   "TXN-8827-ZMT": {
     id: "TXN-8827-ZMT",
     merchant: "Crypto Bridge KE",
+    merchantId: "APP-9210-KV",
     status: "FAILED",
     amount: "9,400.00",
     currency: "KES",
@@ -341,6 +343,13 @@ function PaidView({ tx }: { tx: any }) {
             Download Audit Trail (JSON)
           </button>
         </div>
+        <Link
+          href={`/dashboard/merchants/${tx.merchantId}/risk-profile`}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white text-sm font-bold tracking-wide hover:opacity-90 transition"
+          style={{ background: "linear-gradient(135deg, #dc2626, #991b1b)" }}
+        >
+          <ShieldAlert size={16} /> View Merchant Risk Profile
+        </Link>
       </div>
     </div>
   );
@@ -535,6 +544,13 @@ function PendingView({ tx }: { tx: any }) {
             <span className="text-xs font-semibold">Flag Fraud</span>
           </button>
         </div>
+        <Link
+          href={`/dashboard/merchants/${tx.merchantId}/risk-profile`}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white text-sm font-bold tracking-wide hover:opacity-90 transition"
+          style={{ background: "linear-gradient(135deg, #dc2626, #991b1b)" }}
+        >
+          <ShieldAlert size={16} /> View Merchant Risk Profile
+        </Link>
       </div>
     </div>
   );
@@ -656,9 +672,12 @@ function FailedView({ tx }: { tx: any }) {
               </span>
             ))}
           </div>
-          <button className="w-full py-2.5 rounded-lg bg-slate-900 text-white text-xs font-bold tracking-widest uppercase hover:bg-slate-700 transition">
-            View Merchant Risk Profile
-          </button>
+          <Link
+            href={`/dashboard/merchants/${tx.merchantId}/risk-profile`}
+            className="w-full py-2.5 rounded-lg bg-slate-900 text-white text-xs font-bold tracking-widest uppercase hover:bg-slate-700 transition flex items-center justify-center gap-2"
+          >
+            <ShieldAlert size={13} /> View Merchant Risk Profile
+          </Link>
         </div>
 
         {/* Device context */}
@@ -736,17 +755,16 @@ export default function TransactionDetail() {
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <p className="text-[11px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-4">
+      {/* Back button */}
+      <div className="mb-5">
         <Link
           href="/dashboard/transactions"
-          className="hover:text-blue-700 transition"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white hover:opacity-90 transition"
+          style={{ background: "linear-gradient(135deg, #1a3de4, #1230b8)" }}
         >
-          Transactions
+          ← Back to Transactions
         </Link>
-        {" › "}
-        {tx.id}
-      </p>
+      </div>
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">

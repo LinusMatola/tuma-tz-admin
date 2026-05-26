@@ -1,7 +1,7 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Send } from "lucide-react";
+import { Send, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
 const merchants: Record<string, any> = {
@@ -549,6 +549,13 @@ export default function MerchantDetail() {
       {/* Bottom action bar */}
       <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
         <div className="flex items-center gap-4">
+          <Link
+            href={`/dashboard/merchants/${m.id}/risk-profile`}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
+            style={{ background: "linear-gradient(135deg, #dc2626, #991b1b)" }}
+          >
+            <ShieldAlert size={15} /> View Risk Profile
+          </Link>
           <button className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition tracking-widest uppercase">
             <svg
               width="14"
