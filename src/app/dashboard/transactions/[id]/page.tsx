@@ -306,9 +306,12 @@ function PaidView({ tx }: { tx: any }) {
           <p className="text-blue-200 text-xs mb-5">
             Merchant ID: {tx.merchantId}
           </p>
-          <button className="w-full py-2.5 rounded-lg border border-white/30 text-white text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition">
+          <Link
+            href={`/dashboard/merchants/${tx.merchantId}/profile`}
+            className="w-full py-2.5 rounded-lg border border-white/30 text-white text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition text-center block"
+          >
             View Full History
-          </button>
+          </Link>
         </div>
 
         {/* Ledger activity logs */}
@@ -454,12 +457,31 @@ function PendingView({ tx }: { tx: any }) {
 
       {/* Right col */}
       <div className="space-y-5">
+        {/* Merchant details */}
+        <div className="bg-blue-700 rounded-xl p-6 text-white">
+          <p className="text-[10px] font-bold tracking-[0.15em] text-blue-200 uppercase mb-4">
+            Merchant Details
+          </p>
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+            <BsBank size={22} className="text-white" />
+          </div>
+          <p className="text-xl font-black mb-1">{tx.merchant}</p>
+          <p className="text-blue-200 text-xs mb-5">
+            Merchant ID: {tx.merchantId}
+          </p>
+          <Link
+            href={`/dashboard/merchants/${tx.merchantId}/profile`}
+            className="w-full py-2.5 rounded-lg border border-white/30 text-white text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition text-center block"
+          >
+            View Full History
+          </Link>
+        </div>
+
         {/* Risk assessment */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-5">
             Risk Assessment
           </p>
-          {/* Circle */}
           <div className="flex justify-center mb-5">
             <div className="relative w-28 h-28">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -544,6 +566,7 @@ function PendingView({ tx }: { tx: any }) {
             <span className="text-xs font-semibold">Flag Fraud</span>
           </button>
         </div>
+
         <Link
           href={`/dashboard/merchants/${tx.merchantId}/risk-profile`}
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white text-sm font-bold tracking-wide hover:opacity-90 transition"
@@ -642,6 +665,26 @@ function FailedView({ tx }: { tx: any }) {
 
       {/* Right col */}
       <div className="space-y-5">
+        {/* Merchant details */}
+        <div className="bg-blue-700 rounded-xl p-6 text-white">
+          <p className="text-[10px] font-bold tracking-[0.15em] text-blue-200 uppercase mb-4">
+            Merchant Details
+          </p>
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+            <BsBank size={22} className="text-white" />
+          </div>
+          <p className="text-xl font-black mb-1">{tx.merchant}</p>
+          <p className="text-blue-200 text-xs mb-5">
+            Merchant ID: {tx.merchantId}
+          </p>
+          <Link
+            href={`/dashboard/merchants/${tx.merchantId}/profile`}
+            className="w-full py-2.5 rounded-lg border border-white/30 text-white text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition text-center block"
+          >
+            View Full History
+          </Link>
+        </div>
+
         {/* Security context */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <p className="text-[10px] font-bold tracking-[0.15em] text-slate-700 uppercase mb-4">
