@@ -121,6 +121,9 @@ const insights = [
 export default function MerchantsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [activeSection, setActiveSection] = useState<"applications" | "active">(
+    "applications",
+  );
 
   return (
     <div>
@@ -161,6 +164,172 @@ export default function MerchantsPage() {
           </div>
         ))}
       </div>
+
+      {/* Section tabs */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-4 w-fit">
+        <button
+          onClick={() => setActiveSection("applications")}
+          className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+            activeSection === "applications"
+              ? "bg-white text-blue-700 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Applications
+        </button>
+        <button
+          onClick={() => setActiveSection("active")}
+          className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+            activeSection === "active"
+              ? "bg-white text-blue-700 shadow-sm"
+              : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Active Merchants
+        </button>
+      </div>
+      {activeSection === "active" && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                {[
+                  "Merchant",
+                  "Category",
+                  "Country",
+                  "Status",
+                  "Health",
+                  "Volume",
+                  "Action",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-5 py-3.5 text-left text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                {
+                  id: "APP-9210-KV",
+                  name: "Zanzibar Spices & Exports Ltd.",
+                  category: "Logistics & Supply",
+                  country: "Tanzania",
+                  status: "ACTIVE",
+                  statusColor: "bg-green-100 text-green-700",
+                  health: 98,
+                  healthColor: "bg-green-500",
+                  volume: "KES 4.2M",
+                },
+                {
+                  id: "APP-4402-TZ",
+                  name: "M-Store Electronics",
+                  category: "E-Commerce",
+                  country: "Tanzania",
+                  status: "ACTIVE",
+                  statusColor: "bg-green-100 text-green-700",
+                  health: 74,
+                  healthColor: "bg-amber-500",
+                  volume: "TZS 1.8M",
+                },
+                {
+                  id: "APP-7721-UG",
+                  name: "Blue River Exchange",
+                  category: "Forex/Money",
+                  country: "Uganda",
+                  status: "SUSPENDED",
+                  statusColor: "bg-red-100 text-red-600",
+                  health: 32,
+                  healthColor: "bg-red-500",
+                  volume: "KES 12.4M",
+                },
+                {
+                  id: "APP-1029-KV",
+                  name: "Toby's Gym",
+                  category: "Service & Products",
+                  country: "Kenya",
+                  status: "ACTIVE",
+                  statusColor: "bg-green-100 text-green-700",
+                  health: 61,
+                  healthColor: "bg-amber-500",
+                  volume: "KES 820K",
+                },
+              ].map(
+                ({
+                  id,
+                  name,
+                  category,
+                  country,
+                  status,
+                  statusColor,
+                  health,
+                  healthColor,
+                  volume,
+                }) => (
+                  <tr
+                    key={id}
+                    className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() =>
+                      router.push(`/dashboard/merchants/${id}/profile`)
+                    }
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center">
+                          {name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800 text-[13px]">
+                            {name}
+                          </p>
+                          <p className="text-[11px] text-slate-400">{id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 text-sm">
+                      {category}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600 text-sm">
+                      {country}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${statusColor}`}
+                      >
+                        {status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 bg-slate-100 rounded-full">
+                          <div
+                            className={`h-1.5 rounded-full ${healthColor}`}
+                            style={{ width: `${health}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600">
+                          {health}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 font-bold text-slate-800">
+                      {volume}
+                    </td>
+                    <td className="px-5 py-4">
+                      <button className="text-[11px] font-bold text-blue-700 hover:underline tracking-widest uppercase">
+                        View Profile
+                      </button>
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex items-center gap-3">

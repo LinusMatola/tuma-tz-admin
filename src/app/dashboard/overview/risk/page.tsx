@@ -1,5 +1,5 @@
 "use client";
-import { RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const kpis = [
   {
@@ -36,8 +36,8 @@ const kpis = [
 
 const merchants = [
   {
-    name: "Duca Wholesale Ltd.",
-    mid: "TUMA-99120-KE",
+    name: "Zanzibar Spices & Exports Ltd.",
+    mid: "TUMA-9210-KV",
     risk: 92,
     riskColor: "text-red-600",
     barColor: "bg-red-500",
@@ -49,7 +49,7 @@ const merchants = [
     iconBg: "bg-red-50 text-red-500",
   },
   {
-    name: "Simba Tech Hub",
+    name: "M-Store Retail Ltd.",
     mid: "TUMA-44021-TZ",
     risk: 74,
     riskColor: "text-amber-600",
@@ -103,6 +103,7 @@ const feeds = [
 ];
 
 export default function RiskCommand() {
+  const router = useRouter();
   return (
     <div>
       {/* Header */}
@@ -264,7 +265,20 @@ export default function RiskCommand() {
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <button className="text-[11px] font-bold text-blue-700 hover:underline tracking-widest uppercase">
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/merchants/${
+                                mid === "TUMA-44021-TZ"
+                                  ? "APP-1029-KV"
+                                  : mid === "TUMA-44021-TZ"
+                                    ? "APP-4402-TZ"
+                                    : "APP-7721-UG"
+                              }/security`,
+                            )
+                          }
+                          className="text-[11px] font-bold text-blue-700 hover:underline tracking-widest uppercase"
+                        >
                           Review
                         </button>
                       </td>

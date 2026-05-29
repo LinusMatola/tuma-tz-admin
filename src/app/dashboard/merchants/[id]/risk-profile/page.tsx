@@ -1,5 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -360,6 +361,10 @@ export default function RiskProfilePage() {
   const chartData = d.scoreHistory.map((v: number, i: number) => ({ i, v }));
   const isHigh = d.riskScore >= 70;
 
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [suspendAgreed, setSuspendAgreed] = useState(false);
+  const [suspendPin, setSuspendPin] = useState("");
+
   return (
     <div>
       {/* Back button */}
@@ -409,7 +414,10 @@ export default function RiskProfilePage() {
             Request Enhanced Review
           </button>
           {isHigh && (
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition">
+            <button
+              onClick={() => setShowSuspendModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition"
+            >
               Suspend Account
             </button>
           )}
@@ -626,7 +634,12 @@ export default function RiskProfilePage() {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="font-bold text-slate-900">Risk Event Ledger</h2>
-          <button className="text-sm font-bold text-blue-700 hover:underline">
+          <button
+            onClick={() =>
+              router.push(`/dashboard/merchants/${id}/investigation`)
+            }
+            className="text-sm font-bold text-blue-700 hover:underline"
+          >
             View Audit Log ↗
           </button>
         </div>
@@ -684,6 +697,114 @@ export default function RiskProfilePage() {
           </tbody>
         </table>
       </div>
+      {showSuspendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                <ShieldAlert size={20} className="text-red-500" />
+              </div>
+              <h2 className="text-xl font-black text-slate-900">
+                Suspend Merchant Account
+              </h2>
+            </div>
+
+            {/* Critical warning */}
+            <div className="mx-6 mt-5 bg-red-600 rounded-xl p-4 flex gap-3">
+              <AlertTriangle
+                size={18}
+                className="text-white flex-shrink-0 mt-0.5"
+                strokeWidth={2.5}
+              />
+              <div>
+                <p className="text-white font-bold text-sm tracking-wide uppercase mb-1">
+                  Critical System Action
+                </p>
+                <p className="text-red-100 text-sm leading-relaxed">
+                  This will immediately revoke all API keys and stop transaction
+                  processing for{" "}
+                  <span className="font-bold text-white">{d.name}</span>. All
+                  active terminal sessions will be terminated.
+                </p>
+              </div>
+            </div>
+
+            {/* Acknowledgement */}
+            <div className="mx-6 mt-4">
+              <label className="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+                <input
+                  type="checkbox"
+                  checked={suspendAgreed}
+                  onChange={(e) => setSuspendAgreed(e.target.checked)}
+                  className="mt-0.5 accent-red-600 w-4 h-4 flex-shrink-0"
+                />
+                <span className="text-sm text-slate-700 leading-relaxed font-medium">
+                  I understand this is a high-impact action and that suspension
+                  of this account will disrupt their business operations
+                  immediately.
+                </span>
+              </label>
+            </div>
+
+            {/* PIN input */}
+            <div className="mx-6 mt-4 mb-6">
+              <label className="block text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-2">
+                Admin PIN / Password Verification
+              </label>
+              <div className="flex items-center gap-3 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3">
+                <input
+                  type="password"
+                  value={suspendPin}
+                  onChange={(e) => setSuspendPin(e.target.value)}
+                  placeholder="••••••••"
+                  className="flex-1 bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none tracking-widest"
+                />
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#94a3b8"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Entry will be logged in the immutable audit trail.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setShowSuspendModal(false);
+                  setSuspendAgreed(false);
+                  setSuspendPin("");
+                }}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!suspendAgreed || suspendPin.length < 4}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white tracking-widest uppercase transition disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+                style={{
+                  background:
+                    suspendAgreed && suspendPin.length >= 4
+                      ? "#7a6000"
+                      : "#94a3b8",
+                }}
+              >
+                Execute Suspension
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
