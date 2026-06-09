@@ -36,9 +36,10 @@ export default function TransactionReconciliation() {
       </div>
 
       {/* Side by side records */}
-      <div className="grid grid-cols-2 gap-5 mb-5 relative">
+      {/* Side by side records */}
+      <div className="grid grid-cols-[1fr_80px_1fr] gap-0 mb-5 items-start">
         {/* Gateway record */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-l-xl border border-r-0 border-slate-200 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50">
             <div className="flex items-center gap-2">
               <svg
@@ -61,27 +62,27 @@ export default function TransactionReconciliation() {
           </div>
           <div className="p-5 space-y-4">
             <div>
-              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                 Transaction ID
               </p>
               <p className="font-black text-slate-900">TXN-88294-KRR-92</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                   Gross Amount
                 </p>
                 <p className="font-black text-slate-900">KES 42,500.00</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                   Platform Fee
                 </p>
                 <p className="font-black text-red-600">KES 50.00</p>
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                 Timestamp
               </p>
               <p className="font-medium text-slate-700 text-sm">
@@ -89,7 +90,7 @@ export default function TransactionReconciliation() {
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                 Merchant
               </p>
               <p className="font-medium text-slate-700 text-sm">
@@ -99,9 +100,9 @@ export default function TransactionReconciliation() {
           </div>
         </div>
 
-        {/* Link icon in middle */}
-        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-2">
-          <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center shadow-sm">
+        {/* Middle connector */}
+        <div className="flex flex-col items-center justify-center py-8 bg-white border-y border-slate-200 gap-3 h-full">
+          <div className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center shadow-sm">
             <svg
               width="18"
               height="18"
@@ -114,17 +115,21 @@ export default function TransactionReconciliation() {
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
             </svg>
           </div>
-          <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm">
+          <button className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm whitespace-nowrap">
             MAP FIELDS
           </button>
-          <div className="w-2 h-2 rounded-full bg-red-500" />
-          <p className="text-[10px] font-bold text-red-600 tracking-widests uppercase">
-            Mismatch Detected
-          </p>
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-red-500" />
+            <p className="text-[9px] font-bold text-red-600 tracking-widest uppercase text-center">
+              MISMATCH
+              <br />
+              DETECTED
+            </p>
+          </div>
         </div>
 
         {/* Bank record */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-r-xl border border-l-0 border-slate-200 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50">
             <div className="flex items-center gap-2">
               <svg
@@ -148,27 +153,27 @@ export default function TransactionReconciliation() {
           </div>
           <div className="p-5 space-y-4">
             <div>
-              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                 Bank Reference
               </p>
               <p className="font-black text-slate-900">FT231024-NCBA-0922</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                   Settled Amount
                 </p>
                 <p className="font-black text-slate-900">KES 42,500.00</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                   Processing Fee
                 </p>
                 <p className="font-black text-slate-900">KES 0.00</p>
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                 Effective Date
               </p>
               <p className="font-medium text-slate-700 text-sm">
@@ -176,7 +181,7 @@ export default function TransactionReconciliation() {
               </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
                 Payee Narrative
               </p>
               <p className="font-medium text-slate-700 text-sm">
