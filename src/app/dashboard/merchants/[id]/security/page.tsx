@@ -1,6 +1,7 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { Download, ShieldAlert } from "lucide-react";
+import { useState } from "react";
 
 const securityData: Record<string, any> = {
   "APP-9210-KV": {
@@ -212,6 +213,12 @@ export default function SecurityPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const d = securityData[id] ?? securityData["APP-1029-KV"];
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [flagReason, setFlagReason] = useState("Suspicious Transaction Volume");
+  const [flagNotes, setFlagNotes] = useState("");
+  const [flagPriority, setFlagPriority] = useState<"STANDARD" | "URGENT">(
+    "STANDARD",
+  );
 
   return (
     <div>
@@ -489,6 +496,125 @@ export default function SecurityPage() {
           <p className="text-slate-400 text-sm">
             This merchant has no active security incidents.
           </p>
+        </div>
+      )}
+      {showFlagModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <span className="text-red-600 text-lg">🚩</span>
+                <h2 className="text-xl font-black text-slate-900">
+                  Flag Merchant for Investigation
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowFlagModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Investigation reason */}
+              <div>
+                <p className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-3">
+                  Investigation Reason
+                </p>
+                <div className="space-y-2">
+                  {[
+                    "Suspicious Transaction Volume",
+                    "Merchant Identity Mismatch",
+                    "Regulatory Compliance Concern",
+                  ].map((reason) => (
+                    <label
+                      key={reason}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all border ${
+                        flagReason === reason
+                          ? "bg-blue-50 border-blue-200"
+                          : "bg-slate-50 border-transparent hover:bg-slate-100"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          flagReason === reason
+                            ? "border-blue-700"
+                            : "border-slate-300"
+                        }`}
+                      >
+                        {flagReason === reason && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-blue-700" />
+                        )}
+                      </div>
+                      <input
+                        type="radio"
+                        className="hidden"
+                        checked={flagReason === reason}
+                        onChange={() => setFlagReason(reason)}
+                      />
+                      <span className="text-sm font-semibold text-slate-800">
+                        {reason}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Additional notes */}
+              <div>
+                <p className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase mb-2">
+                  Additional Internal Notes
+                </p>
+                <textarea
+                  value={flagNotes}
+                  onChange={(e) => setFlagNotes(e.target.value)}
+                  placeholder="Detail the anomalies observed in recent ledger activity..."
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition resize-none"
+                />
+              </div>
+
+              {/* Escalation priority */}
+              <div className="border-l-4 border-red-500 pl-4">
+                <p className="text-[10px] font-black tracking-[0.2em] text-slate-700 uppercase mb-0.5">
+                  Escalation Priority
+                </p>
+                <p className="text-xs text-slate-400 mb-3">
+                  Urgent flags trigger immediate settlement hold.
+                </p>
+                <div className="flex gap-2">
+                  {(["STANDARD", "URGENT"] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setFlagPriority(p)}
+                      className={`px-5 py-2 rounded-lg text-xs font-bold tracking-widest uppercase transition border ${
+                        flagPriority === p
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-4 px-6 py-5 border-t border-slate-100">
+              <button
+                onClick={() => setShowFlagModal(false)}
+                className="px-6 py-3 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition tracking-widest uppercase"
+              >
+                Cancel
+              </button>
+              <button className="flex-1 py-3 rounded-xl bg-red-700 text-white text-sm font-bold tracking-widest uppercase hover:bg-red-800 transition">
+                Flag Merchant
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

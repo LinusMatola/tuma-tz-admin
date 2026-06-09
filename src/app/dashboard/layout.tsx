@@ -89,7 +89,8 @@ export default function DashboardLayout({
                   {overviewOpen && (
                     <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
                       {item.children.map(({ label, icon: SubIcon, href }) => {
-                        const active = pathname === href;
+                        const active =
+                          pathname === href || pathname.startsWith(href);
                         return (
                           <Link
                             key={href}
@@ -111,7 +112,9 @@ export default function DashboardLayout({
               );
             }
 
-            const active = pathname === item.href;
+            const active =
+              !!item.href &&
+              (pathname === item.href || pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
