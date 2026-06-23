@@ -14,6 +14,7 @@ import {
   ChevronDown,
   BarChart2,
   ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Merchants", icon: Store, href: "/dashboard/merchants" },
   { label: "Settlements", icon: Landmark, href: "/dashboard/settlements" },
   { label: "Support", icon: Headphones, href: "/dashboard/support" },
+  { label: "Compliance", icon: ShieldCheck, href: "/dashboard/compliance" },
   {
     label: "Overview",
     icon: BarChart2,
