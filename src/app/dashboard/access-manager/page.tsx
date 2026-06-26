@@ -8,7 +8,7 @@ export default function AccessManager() {
       </div>
       <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Manager</h2>
       <p className="text-slate-400 text-sm max-w-xs leading-relaxed">
-        Operator account management and role assignment will be configured here.
+        Admin account management and role assignment will be configured here.
       </p>
       <span className="mt-4 inline-block text-[11px] font-bold tracking-[0.15em] uppercase px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full">
         Coming Soon
