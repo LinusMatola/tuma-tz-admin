@@ -1,259 +1,91 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Send, ShieldAlert } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiGet } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 
-const merchants: Record<string, any> = {
-  "APP-9210-KV": {
-    id: "APP-9210-KV",
-    name: "Zanzibar Spices & Exports Ltd.",
-    status: "UNDER REVIEW",
-    regNumber: "TZA-99201-B",
-    businessType: "Private Limited Company",
-    submissionDate: "Oct 12, 2023 | 14:32 EAT",
-    expectedVolume: "$50,000 - $100,000 / mo",
-    contact: {
-      name: "Mwanaidi Hassan",
-      role: "Director of Operations",
-      email: "m.hassan@zanzibarspices.co.tz",
-      emailVerified: "Verified on Oct 12",
-      phone: "+255 772 901 000",
-      phoneVerified: "OTP Validated",
-    },
-    instruments: [
-      {
-        label: "International Credit Cards",
-        status: "ELIGIBLE",
-        statusColor: "text-green-600",
-        color: "border-l-blue-500",
-      },
-      {
-        label: "M-PESA / Tigo Pesa",
-        status: "ELIGIBLE",
-        statusColor: "text-green-600",
-        color: "border-l-purple-500",
-      },
-      {
-        label: "Local Bank Wire (EFT)",
-        status: "NOT REQUESTED",
-        statusColor: "text-slate-400",
-        color: "border-l-slate-200",
-      },
-    ],
-    docs: ["REGISTRATION.PDF", "TAXID_TZA.PDF", "UTILITY_BILL.PDF"],
-    notes: [
-      {
-        author: "KYC_BOT",
-        role: "bot",
-        time: "2h ago",
-        message:
-          "Automated check: Registration number matches Tanzania business registry database.",
-        alert: false,
-      },
-      {
-        author: "Alex Mercer (Analyst)",
-        role: "analyst",
-        time: "1h ago",
-        message:
-          "Document clarity is high. Director ID photo matches biometric scan perfectly. Proceeding to risk assessment.",
-        alert: false,
-      },
-      {
-        author: "System Alert",
-        role: "alert",
-        time: "45m ago",
-        message:
-          "Tax ID format requires manual validation for non-resident status check.",
-        alert: true,
-      },
-    ],
-  },
-  "APP-4402-TZ": {
-    id: "APP-4402-TZ",
-    name: "M-Store Electronics",
-    status: "UNDER REVIEW",
-    regNumber: "TZA-44021-B",
-    businessType: "Sole Proprietorship",
-    submissionDate: "Oct 24, 2023 | 10:05 GMT",
-    expectedVolume: "$10,000 - $50,000 / mo",
-    contact: {
-      name: "Juma Mkweli",
-      role: "Managing Director",
-      email: "juma@mstore.co.tz",
-      emailVerified: "Verified on Oct 24",
-      phone: "+255 613 200 100",
-      phoneVerified: "OTP Validated",
-    },
-    instruments: [
-      {
-        label: "M-PESA / Tigo Pesa",
-        status: "ELIGIBLE",
-        statusColor: "text-green-600",
-        color: "border-l-purple-500",
-      },
-      {
-        label: "International Credit Cards",
-        status: "PENDING REVIEW",
-        statusColor: "text-amber-600",
-        color: "border-l-amber-500",
-      },
-      {
-        label: "Local Bank Wire (EFT)",
-        status: "NOT REQUESTED",
-        statusColor: "text-slate-400",
-        color: "border-l-slate-200",
-      },
-    ],
-    docs: ["REGISTRATION.PDF", "TAXID_TZA.PDF"],
-    notes: [
-      {
-        author: "KYC_BOT",
-        role: "bot",
-        time: "3h ago",
-        message: "Business registration verified against BRELA database.",
-        alert: false,
-      },
-      {
-        author: "System Alert",
-        role: "alert",
-        time: "2h ago",
-        message: "Medium risk score detected. Manual review assigned.",
-        alert: true,
-      },
-    ],
-  },
-  "APP-7721-UG": {
-    id: "APP-7721-UG",
-    name: "Blue River Exchange",
-    status: "HIGH RISK REVIEW",
-    regNumber: "UGA-7721-B",
-    businessType: "Corporate Tier 2",
-    submissionDate: "Oct 23, 2023 | 16:45 GMT",
-    expectedVolume: "$100,000+ / mo",
-    contact: {
-      name: "Robert Okello",
-      role: "Chief Compliance Officer",
-      email: "r.okello@blueriver.ug",
-      emailVerified: "Verified on Oct 23",
-      phone: "+256 700 123 456",
-      phoneVerified: "OTP Validated",
-    },
-    instruments: [
-      {
-        label: "International Credit Cards",
-        status: "UNDER REVIEW",
-        statusColor: "text-red-600",
-        color: "border-l-red-500",
-      },
-      {
-        label: "Local Bank Wire (EFT)",
-        status: "ELIGIBLE",
-        statusColor: "text-green-600",
-        color: "border-l-green-500",
-      },
-      {
-        label: "M-PESA / Tigo Pesa",
-        status: "NOT REQUESTED",
-        statusColor: "text-slate-400",
-        color: "border-l-slate-200",
-      },
-    ],
-    docs: ["REGISTRATION.PDF", "TAXID_UGA.PDF", "COMPLIANCE_CERT.PDF"],
-    notes: [
-      {
-        author: "KYC_BOT",
-        role: "bot",
-        time: "5h ago",
-        message:
-          "Entity flagged: offshore director detected. Escalating for manual compliance review.",
-        alert: false,
-      },
-      {
-        author: "System Alert",
-        role: "alert",
-        time: "4h ago",
-        message:
-          "High risk score: 88/100. Sanction list partial match detected. Requires senior analyst review.",
-        alert: true,
-      },
-    ],
-  },
-  "APP-1029-KV": {
-    id: "APP-1029-KV",
-    name: "Toby's Gym",
-    status: "PENDING",
-    regNumber: "KEN-1029-B",
-    businessType: "Sole Proprietorship",
-    submissionDate: "Oct 23, 2023 | 09:12 GMT",
-    expectedVolume: "$1,000 - $10,000 / mo",
-    contact: {
-      name: "Tobias Mwangi",
-      role: "Owner",
-      email: "toby@tobysgym.co.ke",
-      emailVerified: "Verified on Oct 23",
-      phone: "+254 712 345 678",
-      phoneVerified: "OTP Validated",
-    },
-    instruments: [
-      {
-        label: "M-PESA / Tigo Pesa",
-        status: "ELIGIBLE",
-        statusColor: "text-green-600",
-        color: "border-l-purple-500",
-      },
-      {
-        label: "Local Bank Wire (EFT)",
-        status: "ELIGIBLE",
-        statusColor: "text-green-600",
-        color: "border-l-green-500",
-      },
-      {
-        label: "International Credit Cards",
-        status: "NOT REQUESTED",
-        statusColor: "text-slate-400",
-        color: "border-l-slate-200",
-      },
-    ],
-    docs: ["REGISTRATION.PDF", "UTILITY_BILL.PDF"],
-    notes: [
-      {
-        author: "KYC_BOT",
-        role: "bot",
-        time: "6h ago",
-        message:
-          "Low risk application. All documents verified. Recommended for fast-track approval.",
-        alert: false,
-      },
-    ],
-  },
-};
+const BASE_IMAGE_URL = "https://dev.tuma-tz.app";
 
 export default function MerchantDetail() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const m = merchants[id];
 
+  const [profile, setProfile] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [activeDoc, setActiveDoc] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  if (!m)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [profileData, docsData] = await Promise.all([
+          apiGet(`/admin/client/profile/${id}`, getToken() ?? undefined),
+          apiGet(`/admin/client/documents/${id}`, getToken() ?? undefined),
+        ]);
+        setProfile(profileData);
+        setDocuments(Array.isArray(docsData) ? docsData : []);
+      } catch (err: any) {
+        setError(err.message ?? "Failed to load merchant details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  const statusStyles: Record<string, string> = {
+    PENDING: "bg-blue-100 text-blue-700",
+    VERIFIED: "bg-green-100 text-green-700",
+    REJECTED: "bg-red-100 text-red-600",
+    UNDER_REVIEW: "bg-amber-100 text-amber-700",
+  };
+
+  const docStatusStyles: Record<string, string> = {
+    PENDING: "bg-amber-100 text-amber-700",
+    VERIFIED: "bg-green-100 text-green-700",
+    REJECTED: "bg-red-100 text-red-600",
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <svg
+          className="animate-spin text-blue-700"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+        <span className="ml-3 text-sm text-slate-500 font-medium">
+          Loading merchant...
+        </span>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <p className="text-slate-400 font-medium">Merchant not found</p>
-        <Link
-          href="/dashboard/merchants"
+        <p className="text-red-500 font-medium">
+          {error || "Merchant not found"}
+        </p>
+        <button
+          onClick={() => router.push("/dashboard/merchants")}
           className="text-blue-700 text-sm font-semibold hover:underline"
         >
           ← Back to Merchants
-        </Link>
+        </button>
       </div>
     );
+  }
 
-  const statusStyles: Record<string, string> = {
-    "UNDER REVIEW": "bg-amber-100 text-amber-700",
-    "HIGH RISK REVIEW": "bg-red-100 text-red-600",
-    PENDING: "bg-blue-100 text-blue-700",
-  };
+  const activeDocument = documents[activeDoc];
 
   return (
     <div className="flex flex-col min-h-screen -m-6">
@@ -263,7 +95,7 @@ export default function MerchantDetail() {
           onClick={() => router.back()}
           className="flex items-center gap-2 text-blue-700 font-bold text-sm hover:underline"
         >
-          ← Application ID: {m.id}
+          ← Application ID: {profile.clientRefNo ?? id}
         </button>
         <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 w-64">
           <svg
@@ -297,18 +129,37 @@ export default function MerchantDetail() {
                 Legal Entity
               </p>
               <span
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide ${statusStyles[m.status] || "bg-slate-100 text-slate-500"}`}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide ${statusStyles[profile.verificationStatus] ?? "bg-slate-100 text-slate-500"}`}
               >
-                {m.status}
+                {profile.verificationStatus}
               </span>
             </div>
-            <h2 className="text-xl font-black text-slate-900 mb-3">{m.name}</h2>
+            <h2 className="text-xl font-black text-slate-900 mb-3">
+              {profile.businessName ?? profile.email}
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Registration Number", value: m.regNumber },
-                { label: "Business Type", value: m.businessType },
-                { label: "Submission Date", value: m.submissionDate },
-                { label: "Expected Volume", value: m.expectedVolume },
+                { label: "Client Ref No", value: profile.clientRefNo ?? "—" },
+                { label: "Business Type", value: profile.businessType ?? "—" },
+                {
+                  label: "Submission Date",
+                  value: profile.createdAt
+                    ? new Date(profile.createdAt).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "—",
+                },
+                { label: "Country", value: profile.countryCode ?? "—" },
+                {
+                  label: "Onboarding Step",
+                  value: `Step ${profile.step ?? 1}`,
+                },
+                {
+                  label: "Verification",
+                  value: profile.verificationStatus ?? "—",
+                },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-0.5">
@@ -344,9 +195,11 @@ export default function MerchantDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-800">
-                    {m.contact.name}
+                    {profile.businessName ?? "—"}
                   </p>
-                  <p className="text-[11px] text-slate-400">{m.contact.role}</p>
+                  <p className="text-[11px] text-slate-400">
+                    {profile.businessType ?? "Account Holder"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -365,11 +218,9 @@ export default function MerchantDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-800">
-                    {m.contact.email}
+                    {profile.email}
                   </p>
-                  <p className="text-[11px] text-slate-400">
-                    {m.contact.emailVerified}
-                  </p>
+                  <p className="text-[11px] text-slate-400">Registered Email</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -387,64 +238,182 @@ export default function MerchantDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-800">
-                    {m.contact.phone}
+                    {profile.phoneNumber ?? "—"}
                   </p>
-                  <p className="text-[11px] text-slate-400">
-                    {m.contact.phoneVerified}
-                  </p>
+                  <p className="text-[11px] text-slate-400">Phone Number</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment instruments */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-3">
-              Payment Instruments
-            </p>
-            <div className="space-y-2">
-              {m.instruments.map((inst: any) => (
-                <div
-                  key={inst.label}
-                  className={`flex items-center justify-between py-2.5 px-3 bg-white rounded-lg border-l-4 ${inst.color} border border-slate-100`}
-                >
-                  <span className="text-sm font-medium text-slate-700">
-                    {inst.label}
-                  </span>
-                  <span
-                    className={`text-[11px] font-bold tracking-widest ${inst.statusColor}`}
+          {/* Document status summary */}
+          {documents.length > 0 && (
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+              <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-3">
+                Documents
+              </p>
+              <div className="space-y-2">
+                {documents.map((doc: any, i: number) => (
+                  <div
+                    key={doc.id}
+                    onClick={() => setActiveDoc(i)}
+                    className={`flex items-center justify-between py-2.5 px-3 bg-white rounded-lg border cursor-pointer transition-all ${activeDoc === i ? "border-blue-300 bg-blue-50" : "border-slate-100 hover:border-slate-200"}`}
                   >
-                    {inst.status}
-                  </span>
-                </div>
-              ))}
+                    <span className="text-xs font-medium text-slate-700 truncate max-w-[140px]">
+                      {doc.documentType?.replace(/_/g, " ")}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold tracking-widest px-2 py-0.5 rounded-md ${docStatusStyles[doc.verificationStatus] ?? "bg-slate-100 text-slate-500"}`}
+                    >
+                      {doc.verificationStatus}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Middle panel — document viewer */}
         <div className="flex-1 bg-slate-100 flex flex-col overflow-hidden">
           {/* Doc tabs */}
-          <div className="flex border-b border-slate-200 bg-white px-4">
-            {m.docs.map((doc: string, i: number) => (
-              <button
-                key={doc}
-                onClick={() => setActiveDoc(i)}
-                className={`px-4 py-3 text-[11px] font-bold tracking-widest uppercase border-b-2 transition-colors ${
-                  activeDoc === i
-                    ? "border-blue-700 text-blue-700"
-                    : "border-transparent text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                {doc}
-              </button>
-            ))}
-          </div>
+          {documents.length > 0 ? (
+            <>
+              <div className="flex border-b border-slate-200 bg-white px-4 overflow-x-auto">
+                {documents.map((doc: any, i: number) => (
+                  <button
+                    key={doc.id}
+                    onClick={() => setActiveDoc(i)}
+                    className={`px-4 py-3 text-[11px] font-bold tracking-widest uppercase border-b-2 transition-colors whitespace-nowrap ${
+                      activeDoc === i
+                        ? "border-blue-700 text-blue-700"
+                        : "border-transparent text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    {doc.documentType?.replace(/_/g, " ")}
+                  </button>
+                ))}
+              </div>
 
-          {/* Doc preview */}
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm w-72 min-h-96 p-8 flex flex-col items-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center mb-4">
+              {/* Doc preview */}
+              <div className="flex-1 flex items-center justify-center p-8">
+                {activeDocument && (
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden max-w-lg w-full">
+                    {/* Image preview */}
+                    <div className="w-full bg-slate-50 flex items-center justify-center min-h-64 relative">
+                      {activeDocument.fileUrl ? (
+                        <img
+                          src={`${BASE_IMAGE_URL}${activeDocument.fileUrl}`}
+                          alt={activeDocument.documentType}
+                          className="max-w-full max-h-96 object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 py-12">
+                          <svg
+                            width="40"
+                            height="40"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#94a3b8"
+                            strokeWidth="1.5"
+                          >
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          <p className="text-sm text-slate-400">
+                            No preview available
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Doc details */}
+                    <div className="p-5 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="font-bold text-slate-800 text-sm">
+                          {activeDocument.documentType?.replace(/_/g, " ")}
+                        </p>
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-md ${docStatusStyles[activeDocument.verificationStatus] ?? "bg-slate-100 text-slate-500"}`}
+                        >
+                          {activeDocument.verificationStatus}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {[
+                          {
+                            label: "File Name",
+                            value: activeDocument.fileName,
+                          },
+                          {
+                            label: "Uploaded",
+                            value: activeDocument.createdAt
+                              ? new Date(
+                                  activeDocument.createdAt,
+                                ).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "—",
+                          },
+                          {
+                            label: "Document ID",
+                            value: `#${activeDocument.id}`,
+                          },
+                        ].map(({ label, value }) => (
+                          <div
+                            key={label}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              {label}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-700">
+                              {value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {activeDocument.fileUrl && (
+                        <button
+                          onClick={() =>
+                            window.open(
+                              `${BASE_IMAGE_URL}${activeDocument.fileUrl}`,
+                              "_blank",
+                            )
+                          }
+                          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50 transition"
+                        >
+                          <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                          Open Full Document
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
                 <svg
                   width="28"
                   height="28"
@@ -457,45 +426,14 @@ export default function MerchantDetail() {
                   <polyline points="14 2 14 8 20 8" />
                 </svg>
               </div>
-              <h3 className="text-lg font-black text-slate-800 text-center mb-1">
-                CERTIFICATE OF
-                <br />
-                INCORPORATION
-              </h3>
-              <p className="text-xs text-slate-400 text-center mb-6">
-                United Republic of Tanzania
+              <p className="text-slate-500 font-bold mb-1">
+                No Documents Uploaded
               </p>
-              <div className="w-full border-t border-slate-100 pt-4 space-y-2">
-                {[
-                  { label: "Entity Name", value: m.name },
-                  { label: "Registry Number", value: m.regNumber },
-                  { label: "Incorporation Date", value: "22nd August 2018" },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between gap-4">
-                    <span className="text-xs text-slate-400 font-medium">
-                      {label}:
-                    </span>
-                    <span className="text-xs font-bold text-slate-700 text-right">
-                      {value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 w-16 h-16 rounded-full border-4 border-slate-200 flex items-center justify-center">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#cbd5e1"
-                  strokeWidth="1.5"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
+              <p className="text-slate-400 text-sm">
+                This merchant hasn't submitted any documents yet.
+              </p>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right panel — reviewer notes */}
@@ -505,30 +443,24 @@ export default function MerchantDetail() {
               Reviewer Notes
             </p>
             <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-md">
-              {m.notes.length} TOTAL
+              0 TOTAL
             </span>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {m.notes.map((note: any, i: number) => (
-              <div
-                key={i}
-                className={`rounded-xl p-4 ${note.alert ? "bg-red-50 border border-red-100" : "bg-slate-50 border border-slate-100"}`}
+            <div className="flex flex-col items-center justify-center h-full text-center py-8">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#cbd5e1"
+                strokeWidth="1.5"
+                className="mb-3"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span
-                    className={`text-[11px] font-bold ${note.alert ? "text-red-600" : note.role === "bot" ? "text-blue-700" : "text-slate-700"}`}
-                  >
-                    {note.author}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {note.time}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {note.message}
-                </p>
-              </div>
-            ))}
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <p className="text-slate-400 text-xs">No reviewer notes yet.</p>
+            </div>
           </div>
           {/* Note input */}
           <div className="p-4 border-t border-slate-100">
@@ -549,13 +481,15 @@ export default function MerchantDetail() {
       {/* Bottom action bar */}
       <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
         <div className="flex items-center gap-4">
-          <Link
-            href={`/dashboard/merchants/${m.id}/risk-profile`}
+          <button
+            onClick={() =>
+              router.push(`/dashboard/merchants/${id}/risk-profile`)
+            }
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
             style={{ background: "linear-gradient(135deg, #dc2626, #991b1b)" }}
           >
             <ShieldAlert size={15} /> View Risk Profile
-          </Link>
+          </button>
           <button className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition tracking-widest uppercase">
             <svg
               width="14"
