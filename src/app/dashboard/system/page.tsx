@@ -2,6 +2,8 @@
 import { useState } from "react";
 
 const subNav = [
+  { id: "logs", label: "Activity Logs", sub: "AUDIT LOGS" },
+  { id: "reports", label: "Reports", sub: "ANALYTICS PORTAL" },
   { id: "settlements", label: "Global Settlements", sub: "FEES & PAYOUTS" },
   { id: "regional", label: "Regional Rules", sub: "KES/TZS LOGIC" },
   { id: "infrastructure", label: "Infrastructure", sub: "API & ALERTS" },
@@ -70,6 +72,116 @@ export default function SystemPage() {
 
         {/* Content */}
         <div className="flex-1 space-y-5">
+          {/* ACTIVITY LOGS */}
+          {active === "logs" && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-1 h-5 bg-blue-700 rounded-full" />
+                <p className="font-bold text-slate-900">Activity Logs</p>
+              </div>
+              <p className="text-sm text-slate-500 mb-5">
+                View the immutable audit trail of all operator actions across
+                the platform.
+              </p>
+              <button
+                onClick={() =>
+                  (window.location.href = "/dashboard/system/logs")
+                }
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
+                style={{
+                  background: "linear-gradient(135deg, #1a3de4, #1230b8)",
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Open Activity Logs
+              </button>
+            </div>
+          )}
+
+          {/* REPORTS */}
+          {active === "reports" && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-1 h-5 bg-purple-500 rounded-full" />
+                <p className="font-bold text-slate-900">Reports</p>
+              </div>
+              <p className="text-sm text-slate-500 mb-5">
+                Access the analytics portal for real-time aggregate data and
+                historical performance metrics.
+              </p>
+              <button
+                onClick={() =>
+                  (window.location.href = "/dashboard/system/reports")
+                }
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
+                style={{
+                  background: "linear-gradient(135deg, #1a3de4, #1230b8)",
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                Open Reports
+              </button>
+            </div>
+          )}
+
+          {/* ROLES */}
+          {active === "roles" && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-1 h-5 bg-amber-500 rounded-full" />
+                <p className="font-bold text-slate-900">Roles & Permissions</p>
+              </div>
+              <p className="text-sm text-slate-500 mb-5">
+                Manage identity and access control. Define granular permissions
+                per platform module.
+              </p>
+              <button
+                onClick={() =>
+                  (window.location.href = "/dashboard/system/roles")
+                }
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
+                style={{
+                  background: "linear-gradient(135deg, #1a3de4, #1230b8)",
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                Open Roles & Permissions
+              </button>
+            </div>
+          )}
           {/* GLOBAL SETTLEMENTS */}
           {active === "settlements" && (
             <>
