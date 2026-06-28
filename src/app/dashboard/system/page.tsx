@@ -12,7 +12,7 @@ const subNav = [
 ];
 
 export default function SystemPage() {
-  const [active, setActive] = useState("settlements");
+  const [active, setActive] = useState("logs");
   const [dynamicFee, setDynamicFee] = useState(true);
   const [mfa, setMfa] = useState(true);
   const [timeout, setTimeout_] = useState(15);
