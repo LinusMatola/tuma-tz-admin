@@ -2,10 +2,31 @@
 import { useParams, useRouter } from "next/navigation";
 import { Send, ShieldAlert } from "lucide-react";
 import { useState, useEffect } from "react";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPut } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
 const BASE_IMAGE_URL = "https://dev.tuma-tz.app";
+
+const STATUS_OPTIONS = [
+  {
+    value: "UNDER_REVIEW",
+    label: "Under Review",
+    color: "bg-amber-100 text-amber-700",
+    requiresComment: true,
+  },
+  {
+    value: "VERIFIED",
+    label: "Verified",
+    color: "bg-green-100 text-green-700",
+    requiresComment: false,
+  },
+  {
+    value: "REJECTED",
+    label: "Rejected",
+    color: "bg-red-100 text-red-600",
+    requiresComment: true,
+  },
+];
 
 export default function MerchantDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,23 +38,94 @@ export default function MerchantDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [remarks, setRemarks] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState("");
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profileData, docsData] = await Promise.all([
-          apiGet(`/admin/client/profile/${id}`, getToken() ?? undefined),
-          apiGet(`/admin/client/documents/${id}`, getToken() ?? undefined),
-        ]);
-        setProfile(profileData);
-        setDocuments(Array.isArray(docsData) ? docsData : []);
-      } catch (err: any) {
-        setError(err.message ?? "Failed to load merchant details.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, [id]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [profileData, docsData] = await Promise.all([
+        apiGet(`/admin/client/profile/${id}`, getToken() ?? undefined),
+        apiGet(`/admin/client/documents/${id}`, getToken() ?? undefined),
+      ]);
+      setProfile(profileData);
+      setDocuments(Array.isArray(docsData) ? docsData : []);
+    } catch (err: any) {
+      setError(err.message ?? "Failed to load merchant details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openModal = (status: string) => {
+    setSelectedStatus(status);
+    setRemarks("");
+    setSubmitError("");
+    setSubmitSuccess("");
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedStatus("");
+    setRemarks("");
+    setSubmitError("");
+    setSubmitSuccess("");
+  };
+
+  const handleSubmit = async () => {
+    const activeDocument = documents[activeDoc];
+    if (!activeDocument) return;
+
+    const option = STATUS_OPTIONS.find((s) => s.value === selectedStatus);
+    if (option?.requiresComment && !remarks.trim()) {
+      setSubmitError(
+        `A comment is required when setting status to ${option.label}.`,
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      await apiPut(
+        `/admin/client/documents/verify/${activeDocument.id}`,
+        {
+          documentId: activeDocument.id,
+          status: selectedStatus,
+          remarks: remarks.trim() || null,
+        },
+        getToken() ?? undefined,
+      );
+
+      setSubmitSuccess(
+        `Document status updated to ${option?.label} successfully.`,
+      );
+      // Refresh documents after 1.5s then close modal
+      setTimeout(async () => {
+        const docsData = await apiGet(
+          `/admin/client/documents/${id}`,
+          getToken() ?? undefined,
+        );
+        setDocuments(Array.isArray(docsData) ? docsData : []);
+        closeModal();
+      }, 1500);
+    } catch (err: any) {
+      setSubmitError(err.message ?? "Failed to update document status.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const statusStyles: Record<string, string> = {
     PENDING: "bg-blue-100 text-blue-700",
@@ -43,9 +135,10 @@ export default function MerchantDetail() {
   };
 
   const docStatusStyles: Record<string, string> = {
-    PENDING: "bg-amber-100 text-amber-700",
+    PENDING: "bg-blue-100 text-blue-700",
     VERIFIED: "bg-green-100 text-green-700",
     REJECTED: "bg-red-100 text-red-600",
+    UNDER_REVIEW: "bg-amber-100 text-amber-700",
   };
 
   if (loading) {
@@ -121,7 +214,7 @@ export default function MerchantDetail() {
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel */}
-        <div className="w-80 flex-shrink-0 border-r border-slate-200 overflow-y-auto bg-white p-6 space-y-5">
+        <div className="w-80 shrink-0 border-r border-slate-200 overflow-y-auto bg-white p-6 space-y-5">
           {/* Legal entity */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -259,7 +352,7 @@ export default function MerchantDetail() {
                     onClick={() => setActiveDoc(i)}
                     className={`flex items-center justify-between py-2.5 px-3 bg-white rounded-lg border cursor-pointer transition-all ${activeDoc === i ? "border-blue-300 bg-blue-50" : "border-slate-100 hover:border-slate-200"}`}
                   >
-                    <span className="text-xs font-medium text-slate-700 truncate max-w-[140px]">
+                    <span className="text-xs font-medium text-slate-700 truncate max-w-35">
                       {doc.documentType?.replace(/_/g, " ")}
                     </span>
                     <span
@@ -276,9 +369,9 @@ export default function MerchantDetail() {
 
         {/* Middle panel — document viewer */}
         <div className="flex-1 bg-slate-100 flex flex-col overflow-hidden">
-          {/* Doc tabs */}
           {documents.length > 0 ? (
             <>
+              {/* Doc tabs */}
               <div className="flex border-b border-slate-200 bg-white px-4 overflow-x-auto">
                 {documents.map((doc: any, i: number) => (
                   <button
@@ -299,7 +392,7 @@ export default function MerchantDetail() {
               <div className="flex-1 flex items-center justify-center p-8">
                 {activeDocument && (
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden max-w-lg w-full">
-                    {/* Image preview */}
+                    {/* Image */}
                     <div className="w-full bg-slate-50 flex items-center justify-center min-h-64 relative">
                       {activeDocument.fileUrl ? (
                         <img
@@ -343,7 +436,7 @@ export default function MerchantDetail() {
                           {activeDocument.verificationStatus}
                         </span>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1.5 mb-4">
                         {[
                           {
                             label: "File Name",
@@ -358,8 +451,6 @@ export default function MerchantDetail() {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
                                 })
                               : "—",
                           },
@@ -381,31 +472,79 @@ export default function MerchantDetail() {
                           </div>
                         ))}
                       </div>
-                      {activeDocument.fileUrl && (
-                        <button
-                          onClick={() =>
-                            window.open(
-                              `${BASE_IMAGE_URL}${activeDocument.fileUrl}`,
-                              "_blank",
-                            )
-                          }
-                          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50 transition"
-                        >
-                          <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
+
+                      {/* Action buttons */}
+                      <div className="space-y-2">
+                        {activeDocument.fileUrl && (
+                          <button
+                            onClick={() =>
+                              window.open(
+                                `${BASE_IMAGE_URL}${activeDocument.fileUrl}`,
+                                "_blank",
+                              )
+                            }
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50 transition"
                           >
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                          </svg>
-                          Open Full Document
-                        </button>
-                      )}
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                              <polyline points="15 3 21 3 21 9" />
+                              <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                            Open Full Document
+                          </button>
+                        )}
+
+                        {/* Status action buttons — only show if not already VERIFIED */}
+                        {activeDocument.verificationStatus !== "VERIFIED" && (
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                            <button
+                              onClick={() => openModal("UNDER_REVIEW")}
+                              className="py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold hover:bg-amber-100 transition"
+                            >
+                              Under Review
+                            </button>
+                            <button
+                              onClick={() => openModal("VERIFIED")}
+                              className="py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-[11px] font-bold hover:bg-green-100 transition"
+                            >
+                              Verify
+                            </button>
+                            <button
+                              onClick={() => openModal("REJECTED")}
+                              className="py-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-100 transition"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+
+                        {activeDocument.verificationStatus === "VERIFIED" && (
+                          <div className="pt-2 border-t border-slate-100">
+                            <div className="flex items-center justify-center gap-2 py-2 bg-green-50 rounded-lg">
+                              <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#16a34a"
+                                strokeWidth="2.5"
+                              >
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              <span className="text-xs font-bold text-green-700">
+                                Document Verified
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -437,7 +576,7 @@ export default function MerchantDetail() {
         </div>
 
         {/* Right panel — reviewer notes */}
-        <div className="w-72 flex-shrink-0 border-l border-slate-200 bg-white flex flex-col">
+        <div className="w-72 shrink-0 border-l border-slate-200 bg-white flex flex-col">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase">
               Reviewer Notes
@@ -462,7 +601,6 @@ export default function MerchantDetail() {
               <p className="text-slate-400 text-xs">No reviewer notes yet.</p>
             </div>
           </div>
-          {/* Note input */}
           <div className="p-4 border-t border-slate-100">
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
               <input
@@ -536,6 +674,230 @@ export default function MerchantDetail() {
           </button>
         </div>
       </div>
+
+      {/* Document Status Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    selectedStatus === "VERIFIED"
+                      ? "bg-green-100"
+                      : selectedStatus === "REJECTED"
+                        ? "bg-red-100"
+                        : "bg-amber-100"
+                  }`}
+                >
+                  {selectedStatus === "VERIFIED" ? (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#16a34a"
+                      strokeWidth="2.5"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : selectedStatus === "REJECTED" ? (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#dc2626"
+                      strokeWidth="2.5"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#d97706"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  )}
+                </div>
+                <h2 className="text-lg font-black text-slate-900">
+                  {selectedStatus === "VERIFIED"
+                    ? "Verify Document"
+                    : selectedStatus === "REJECTED"
+                      ? "Reject Document"
+                      : "Mark Under Review"}
+                </h2>
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {/* Document info */}
+              <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
+                  Document
+                </p>
+                <p className="text-sm font-bold text-slate-800">
+                  {activeDocument?.documentType?.replace(/_/g, " ")}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  ID: #{activeDocument?.id}
+                </p>
+              </div>
+
+              {/* Status being set */}
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-slate-600">Setting status to:</p>
+                <span
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                    selectedStatus === "VERIFIED"
+                      ? "bg-green-100 text-green-700"
+                      : selectedStatus === "REJECTED"
+                        ? "bg-red-100 text-red-600"
+                        : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {selectedStatus?.replace(/_/g, " ")}
+                </span>
+              </div>
+
+              {/* Remarks */}
+              <div>
+                <label className="block text-[11px] font-bold tracking-[0.12em] text-slate-600 uppercase mb-2">
+                  {selectedStatus === "VERIFIED"
+                    ? "Remarks (Optional)"
+                    : "Comment (Required)"}
+                </label>
+                <textarea
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder={
+                    selectedStatus === "VERIFIED"
+                      ? "Add any optional remarks..."
+                      : selectedStatus === "REJECTED"
+                        ? "Explain why this document is being rejected..."
+                        : "Explain what needs to be reviewed..."
+                  }
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition resize-none"
+                />
+                {(selectedStatus === "REJECTED" ||
+                  selectedStatus === "UNDER_REVIEW") && (
+                  <p className="text-[11px] text-amber-600 mt-1 font-medium">
+                    ⚠ A comment is required for this status.
+                  </p>
+                )}
+              </div>
+
+              {/* Error */}
+              {submitError && (
+                <div className="flex gap-2 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+                  <svg
+                    className="shrink-0 mt-0.5 text-red-500"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <p className="text-xs text-red-600">{submitError}</p>
+                </div>
+              )}
+
+              {/* Success */}
+              {submitSuccess && (
+                <div className="flex gap-2 bg-green-50 border border-green-100 rounded-lg px-4 py-3">
+                  <svg
+                    className="shrink-0 mt-0.5 text-green-600"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <p className="text-xs text-green-700">{submitSuccess}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal actions */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
+              <button
+                onClick={closeModal}
+                disabled={submitting}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !!submitSuccess}
+                className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition hover:opacity-90 disabled:opacity-50 ${
+                  selectedStatus === "VERIFIED"
+                    ? ""
+                    : selectedStatus === "REJECTED"
+                      ? ""
+                      : ""
+                }`}
+                style={{
+                  background:
+                    selectedStatus === "VERIFIED"
+                      ? "linear-gradient(135deg, #16a34a, #15803d)"
+                      : selectedStatus === "REJECTED"
+                        ? "linear-gradient(135deg, #dc2626, #991b1b)"
+                        : "linear-gradient(135deg, #d97706, #b45309)",
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <svg
+                      className="animate-spin"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    {selectedStatus === "VERIFIED"
+                      ? "✓ Verify Document"
+                      : selectedStatus === "REJECTED"
+                        ? "✕ Reject Document"
+                        : "Mark Under Review"}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
