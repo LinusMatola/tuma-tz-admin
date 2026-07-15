@@ -1,4 +1,4 @@
-export const API_BASE = "/api-proxy";
+export const API_BASE = "https://api.tuma-tz.app";
 
 const handleUnauthorized = () => {
   localStorage.removeItem("tuma_access_token");
