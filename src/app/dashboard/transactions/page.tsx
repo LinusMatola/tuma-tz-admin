@@ -329,7 +329,7 @@ export default function TransactionsPage() {
                 {[
                   "Transaction",
                   "Order",
-                  "Client",
+                  "Business Name",
                   "Amount",
                   "Provider",
                   "Status",
@@ -399,7 +399,7 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-5 py-4">
                         <p className="font-bold text-slate-700 text-[12px]">
-                          {t.clientName ?? `Client #${t.clientId}`}
+                          {t.clientName ?? `Business #${t.clientId}`}
                         </p>
                       </td>
                       <td className="px-5 py-4">
