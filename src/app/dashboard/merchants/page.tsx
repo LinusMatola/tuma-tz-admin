@@ -193,18 +193,7 @@ export default function MerchantsPage() {
               : m.businessType === "COMPANY"
                 ? "🏦"
                 : "🏪",
-          health:
-            m.verificationStatus === "VERIFIED"
-              ? 90
-              : m.verificationStatus === "REJECTED"
-                ? 20
-                : 50,
-          healthColor:
-            m.verificationStatus === "VERIFIED"
-              ? "bg-green-500"
-              : m.verificationStatus === "REJECTED"
-                ? "bg-red-500"
-                : "bg-amber-500",
+
           volume: "—",
           type: m.verificationStatus === "VERIFIED" ? "Active" : "Application",
           typeColor:
@@ -432,7 +421,7 @@ export default function MerchantsPage() {
                       "Country",
                       "Type",
                       "Status",
-                      "Health",
+
                       "Volume",
                     ].map((h) => (
                       <th
@@ -466,8 +455,7 @@ export default function MerchantsPage() {
                         typeColor,
                         status,
                         statusColor,
-                        health,
-                        healthColor,
+
                         volume,
                       }) => (
                         <tr
@@ -519,7 +507,7 @@ export default function MerchantsPage() {
                               {status}
                             </span>
                           </td>
-                          <td className="px-5 py-4">
+                          {/* <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-1.5 bg-slate-100 rounded-full">
                                 <div
@@ -531,7 +519,7 @@ export default function MerchantsPage() {
                                 {health}%
                               </span>
                             </div>
-                          </td>
+                          </td> */}
                           <td className="px-5 py-4 font-bold text-slate-800">
                             {volume}
                           </td>
@@ -791,7 +779,7 @@ export default function MerchantsPage() {
                       "Category",
                       "Country",
                       "Status",
-                      "Health",
+
                       "Volume",
                       "Action",
                     ].map((h) => (
@@ -866,7 +854,7 @@ export default function MerchantsPage() {
                               {status}
                             </span>
                           </td>
-                          <td className="px-5 py-4">
+                          {/* <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-1.5 bg-slate-100 rounded-full">
                                 <div
@@ -878,7 +866,7 @@ export default function MerchantsPage() {
                                 {health}%
                               </span>
                             </div>
-                          </td>
+                          </td> */}
                           <td className="px-5 py-4 font-bold text-slate-800">
                             {volume}
                           </td>

@@ -1,4 +1,4 @@
-export const API_BASE = "https://api.tuma-tz.app";
+export const API_BASE = "/api-proxy";
 
 const handleUnauthorized = () => {
   localStorage.removeItem("tuma_access_token");
@@ -7,7 +7,9 @@ const handleUnauthorized = () => {
   window.location.href = "/login";
 };
 
+
 export const apiPost = async (endpoint: string, body: object, token?: string) => {
+ 
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method: "POST",
     headers: {
@@ -38,6 +40,7 @@ if (!res.ok) {
 };
 
 export const apiGet = async (endpoint: string, token?: string) => {
+   console.log(`${API_BASE}${endpoint}`);
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method: "GET",
     headers: {
