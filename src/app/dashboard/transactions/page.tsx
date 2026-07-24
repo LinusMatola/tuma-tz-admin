@@ -369,9 +369,7 @@ export default function TransactionsPage() {
                       key={t.id}
                       className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
                       onClick={() =>
-                        router.push(
-                          `/dashboard/transactions/${t.transactionId}`,
-                        )
+                        router.push(`/dashboard/transactions/${t.id}`)
                       }
                     >
                       <td className="px-5 py-4">
@@ -443,9 +441,7 @@ export default function TransactionsPage() {
                       >
                         <button
                           onClick={() =>
-                            router.push(
-                              `/dashboard/transactions/${t.transactionId}`,
-                            )
+                            router.push(`/dashboard/transactions/${t.id}`)
                           }
                           className="text-[11px] font-bold text-blue-700 hover:underline tracking-widest uppercase"
                         >
