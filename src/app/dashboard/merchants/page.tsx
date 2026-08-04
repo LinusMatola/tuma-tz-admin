@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Search, SlidersHorizontal } from "lucide-react";
+import { Download } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import DateRangeFilter, { DateRange } from "@/components/DateRangeFilter";
 
 const insights = [
   {
@@ -35,7 +36,6 @@ function Pagination({
 }) {
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalItems);
-
   return (
     <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
       <p className="text-xs text-slate-400">
@@ -101,9 +101,173 @@ function Pagination({
   );
 }
 
+interface FilterBarProps {
+  search: string;
+  setSearch: (v: string) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  countryFilter: string;
+  setCountryFilter: (v: string) => void;
+  categoryFilter: string;
+  setCategoryFilter: (v: string) => void;
+  dateRange: DateRange;
+  setDateRange: (v: DateRange) => void;
+  uniqueCountries: string[];
+  uniqueCategories: string[];
+  hasActiveFilters: boolean;
+  onClearAll: () => void;
+  onPageReset: () => void;
+}
+
+function FilterBar({
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  countryFilter,
+  setCountryFilter,
+  categoryFilter,
+  setCategoryFilter,
+  dateRange,
+  setDateRange,
+  uniqueCountries,
+  uniqueCategories,
+  hasActiveFilters,
+  onClearAll,
+  onPageReset,
+}: FilterBarProps) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 space-y-3">
+      {/* Row 1 — Search */}
+      <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2.5">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          className="shrink-0"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            onPageReset();
+          }}
+          placeholder="Search by name, email, ref no or country..."
+          className="bg-transparent text-sm text-slate-600 placeholder-slate-400 focus:outline-none w-full"
+        />
+        {search && (
+          <button
+            onClick={() => {
+              setSearch("");
+              onPageReset();
+            }}
+            className="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none shrink-0"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Row 2 — Dropdowns + Date + Clear */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Status */}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              onPageReset();
+            }}
+            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+          >
+            <option value="">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="UNDER_REVIEW">Under Review</option>
+          </select>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+            ▾
+          </span>
+        </div>
+
+        {/* Country */}
+        <div className="relative">
+          <select
+            value={countryFilter}
+            onChange={(e) => {
+              setCountryFilter(e.target.value);
+              onPageReset();
+            }}
+            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+          >
+            <option value="">All Countries</option>
+            {uniqueCountries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+            ▾
+          </span>
+        </div>
+
+        {/* Category */}
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              onPageReset();
+            }}
+            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+          >
+            <option value="">All Categories</option>
+            {uniqueCategories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+            ▾
+          </span>
+        </div>
+
+        {/* Date range */}
+        <DateRangeFilter
+          value={dateRange}
+          onChange={(range) => {
+            setDateRange(range);
+            onPageReset();
+          }}
+          placeholder="Date range"
+        />
+
+        {/* Clear all */}
+        {hasActiveFilters && (
+          <button
+            onClick={onClearAll}
+            className="px-3 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition whitespace-nowrap"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function MerchantsPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
   const [activeSection, setActiveSection] = useState<
     "all" | "applications" | "active"
   >("all");
@@ -113,6 +277,16 @@ export default function MerchantsPage() {
   const [allPage, setAllPage] = useState(1);
   const [appPage, setAppPage] = useState(1);
   const [activePage, setActivePage] = useState(1);
+
+  // Filter state
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: null,
+    to: null,
+  });
 
   useEffect(() => {
     const fetchMerchants = async () => {
@@ -137,6 +311,7 @@ export default function MerchantsPage() {
                 ? "bg-blue-100 text-blue-700"
                 : "bg-slate-100 text-slate-600",
           onboarding: `Step ${m.step ?? 1}`,
+          createdAt: m.createdAt,
           submitted: m.createdAt
             ? new Date(m.createdAt).toLocaleDateString("en-GB", {
                 day: "2-digit",
@@ -180,7 +355,9 @@ export default function MerchantsPage() {
               ? "bg-green-100 text-green-700"
               : m.verificationStatus === "REJECTED"
                 ? "bg-red-100 text-red-600"
-                : "bg-amber-100 text-amber-700",
+                : m.verificationStatus === "UNDER_REVIEW"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-blue-100 text-blue-700",
           bar:
             m.verificationStatus === "VERIFIED"
               ? "bg-green-500"
@@ -193,7 +370,18 @@ export default function MerchantsPage() {
               : m.businessType === "COMPANY"
                 ? "🏦"
                 : "🏪",
-
+          health:
+            m.verificationStatus === "VERIFIED"
+              ? 90
+              : m.verificationStatus === "REJECTED"
+                ? 20
+                : 50,
+          healthColor:
+            m.verificationStatus === "VERIFIED"
+              ? "bg-green-500"
+              : m.verificationStatus === "REJECTED"
+                ? "bg-red-500"
+                : "bg-amber-500",
           volume: "—",
           type: m.verificationStatus === "VERIFIED" ? "Active" : "Application",
           typeColor:
@@ -253,26 +441,75 @@ export default function MerchantsPage() {
     },
   ];
 
-  // Filtered lists
-  const filteredAll = merchants.filter(
-    (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.email?.toLowerCase().includes(search.toLowerCase()) ||
-      m.country?.toLowerCase().includes(search.toLowerCase()),
-  );
+  // Unique filter options
+  const uniqueCountries = [
+    ...new Set(merchants.map((m) => m.country).filter((c) => c !== "—")),
+  ];
+  const uniqueCategories = [
+    ...new Set(merchants.map((m) => m.category).filter((c) => c !== "—")),
+  ];
 
-  const filteredApplications = merchants
-    .filter((m) => m.type === "Application")
-    .filter(
-      (m) =>
+  // Apply all filters
+  const applyFilters = (list: any[]) =>
+    list.filter((m) => {
+      const matchSearch =
         m.name.toLowerCase().includes(search.toLowerCase()) ||
         m.email?.toLowerCase().includes(search.toLowerCase()) ||
-        m.country?.toLowerCase().includes(search.toLowerCase()),
-    );
+        m.country?.toLowerCase().includes(search.toLowerCase()) ||
+        m.clientRefNo?.toLowerCase().includes(search.toLowerCase());
 
-  const filteredActive = merchants
-    .filter((m) => m.type === "Active")
-    .filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
+      const matchStatus = statusFilter ? m.status === statusFilter : true;
+      const matchCountry = countryFilter ? m.country === countryFilter : true;
+      const matchCategory = categoryFilter
+        ? m.category === categoryFilter
+        : true;
+
+      const createdAt = m.createdAt ? new Date(m.createdAt) : null;
+      const matchDate =
+        dateRange.from && dateRange.to && createdAt
+          ? createdAt >= dateRange.from && createdAt <= dateRange.to
+          : dateRange.from && createdAt
+            ? createdAt >= dateRange.from
+            : true;
+
+      return (
+        matchSearch && matchStatus && matchCountry && matchCategory && matchDate
+      );
+    });
+
+  const hasActiveFilters = !!(
+    search ||
+    statusFilter ||
+    countryFilter ||
+    categoryFilter ||
+    dateRange.from
+  );
+
+  const clearAllFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setCountryFilter("");
+    setCategoryFilter("");
+    setDateRange({ from: null, to: null });
+    setAllPage(1);
+    setAppPage(1);
+    setActivePage(1);
+  };
+
+  const pageReset = () => {
+    setAllPage(1);
+    setAppPage(1);
+    setActivePage(1);
+  };
+
+  // Filtered lists
+  const filteredAll = applyFilters(merchants);
+  const filteredApplications = applyFilters(
+    merchants.filter((m) => m.type === "Application"),
+  );
+  const filteredActive = applyFilters(
+    merchants.filter((m) => m.type === "Active"),
+  );
 
   // Paginated slices
   const allTotalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE));
@@ -298,6 +535,24 @@ export default function MerchantsPage() {
     (activePage - 1) * PAGE_SIZE,
     activePage * PAGE_SIZE,
   );
+
+  const filterBarProps = {
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
+    countryFilter,
+    setCountryFilter,
+    categoryFilter,
+    setCategoryFilter,
+    dateRange,
+    setDateRange,
+    uniqueCountries,
+    uniqueCategories,
+    hasActiveFilters,
+    onClearAll: clearAllFilters,
+    onPageReset: pageReset,
+  };
 
   return (
     <div>
@@ -410,165 +665,145 @@ export default function MerchantsPage() {
         <>
           {/* ALL MERCHANTS tab */}
           {activeSection === "all" && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-5">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    {[
-                      "Merchant",
-                      "Client Ref No",
-                      "Category",
-                      "Country",
-                      "Type",
-                      "Status",
-
-                      "Volume",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="px-5 py-3.5 text-left text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedAll.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="text-center py-12 text-slate-400 text-sm"
-                      >
-                        No merchants found.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedAll.map(
-                      ({
-                        id,
-                        clientRefNo,
-                        name,
-                        category,
-                        country,
-                        type,
-                        typeColor,
-                        status,
-                        statusColor,
-
-                        volume,
-                      }) => (
-                        <tr
-                          key={id}
-                          className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                          onClick={() =>
-                            router.push(
-                              type === "Active"
-                                ? `/dashboard/merchants/${id}/profile`
-                                : `/dashboard/merchants/${id}`,
-                            )
-                          }
+            <>
+              <FilterBar {...filterBarProps} />
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-5">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      {[
+                        "Merchant",
+                        "Client Ref No",
+                        "Category",
+                        "Country",
+                        "Type",
+                        "Status",
+                        "Health",
+                        "Volume",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-5 py-3.5 text-left text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
                         >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center">
-                                {name.charAt(0).toUpperCase()}
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedAll.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="text-center py-12 text-slate-400 text-sm"
+                        >
+                          {hasActiveFilters
+                            ? "No merchants match your filters."
+                            : "No merchants found."}
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedAll.map(
+                        ({
+                          id,
+                          clientRefNo,
+                          name,
+                          category,
+                          country,
+                          type,
+                          typeColor,
+                          status,
+                          statusColor,
+                          health,
+                          healthColor,
+                          volume,
+                        }) => (
+                          <tr
+                            key={id}
+                            className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                            onClick={() =>
+                              router.push(
+                                type === "Active"
+                                  ? `/dashboard/merchants/${id}/profile`
+                                  : `/dashboard/merchants/${id}`,
+                              )
+                            }
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center">
+                                  {name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-slate-800 text-[13px]">
+                                    {name}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">
+                                    ID: {id}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-bold text-slate-800 text-[13px]">
-                                  {name}
-                                </p>
-                                <p className="text-[11px] text-slate-400">
-                                  CLIENT ID: {id}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-slate-600 text-sm">
-                            {clientRefNo}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600 text-sm">
-                            {category}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600 text-sm">
-                            {country}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${typeColor}`}
-                            >
-                              {type}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${statusColor}`}
-                            >
-                              {status}
-                            </span>
-                          </td>
-                          {/* <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-1.5 bg-slate-100 rounded-full">
-                                <div
-                                  className={`h-1.5 rounded-full ${healthColor}`}
-                                  style={{ width: `${health}%` }}
-                                />
-                              </div>
-                              <span className="text-xs font-bold text-slate-600">
-                                {health}%
+                            </td>
+                            <td className="px-5 py-4 text-slate-500 text-sm">
+                              {clientRefNo ?? "—"}
+                            </td>
+                            <td className="px-5 py-4 text-slate-600 text-sm">
+                              {category}
+                            </td>
+                            <td className="px-5 py-4 text-slate-600 text-sm">
+                              {country}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${typeColor}`}
+                              >
+                                {type}
                               </span>
-                            </div>
-                          </td> */}
-                          <td className="px-5 py-4 font-bold text-slate-800">
-                            {volume}
-                          </td>
-                        </tr>
-                      ),
-                    )
-                  )}
-                </tbody>
-              </table>
-              <Pagination
-                currentPage={allPage}
-                totalPages={allTotalPages}
-                onPageChange={(p) => setAllPage(p)}
-                totalItems={filteredAll.length}
-                pageSize={PAGE_SIZE}
-              />
-            </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${statusColor}`}
+                              >
+                                {status}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-slate-100 rounded-full">
+                                  <div
+                                    className={`h-1.5 rounded-full ${healthColor}`}
+                                    style={{ width: `${health}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-bold text-slate-600">
+                                  {health}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 font-bold text-slate-800">
+                              {volume}
+                            </td>
+                          </tr>
+                        ),
+                      )
+                    )}
+                  </tbody>
+                </table>
+                <Pagination
+                  currentPage={allPage}
+                  totalPages={allTotalPages}
+                  onPageChange={setAllPage}
+                  totalItems={filteredAll.length}
+                  pageSize={PAGE_SIZE}
+                />
+              </div>
+            </>
           )}
 
           {/* APPLICATIONS tab */}
           {activeSection === "applications" && (
             <>
-              {/* Filters */}
-              <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex items-center gap-3">
-                <div className="flex-1 flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2.5">
-                  <Search size={14} className="text-slate-400" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setAppPage(1);
-                    }}
-                    placeholder="Search by name, email, or country..."
-                    className="bg-transparent text-sm text-slate-600 placeholder-slate-400 focus:outline-none w-full"
-                  />
-                </div>
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-                  All Status <span className="text-slate-400">▾</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-                  All Countries <span className="text-slate-400">▾</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-                  <SlidersHorizontal size={14} /> More Filters
-                </button>
-              </div>
-
-              {/* Table */}
+              <FilterBar {...filterBarProps} />
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-5">
                 <table className="w-full text-sm">
                   <thead>
@@ -599,7 +834,9 @@ export default function MerchantsPage() {
                           colSpan={8}
                           className="text-center py-12 text-slate-400 text-sm"
                         >
-                          No applications found.
+                          {hasActiveFilters
+                            ? "No applications match your filters."
+                            : "No applications found."}
                         </td>
                       </tr>
                     ) : (
@@ -643,10 +880,10 @@ export default function MerchantsPage() {
                                     {name}
                                   </p>
                                   <p className="text-[11px] text-slate-400">
-                                    CLIENT ID: {id}
+                                    ID: {id}
                                   </p>
                                   <p className="text-[11px] text-slate-400">
-                                    REF NO: {clientRefNo}
+                                    {clientRefNo}
                                   </p>
                                 </div>
                               </div>
@@ -711,7 +948,7 @@ export default function MerchantsPage() {
                 <Pagination
                   currentPage={appPage}
                   totalPages={appTotalPages}
-                  onPageChange={(p) => setAppPage(p)}
+                  onPageChange={setAppPage}
                   totalItems={filteredApplications.length}
                   pageSize={PAGE_SIZE}
                 />
@@ -770,125 +1007,130 @@ export default function MerchantsPage() {
 
           {/* ACTIVE MERCHANTS tab */}
           {activeSection === "active" && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    {[
-                      "Merchant",
-                      "Category",
-                      "Country",
-                      "Status",
-
-                      "Volume",
-                      "Action",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="px-5 py-3.5 text-left text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedActive.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="text-center py-12 text-slate-400 text-sm"
-                      >
-                        No active merchants found.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedActive.map(
-                      ({
-                        id,
-                        clientRefNo,
-                        name,
-                        category,
-                        country,
-                        status,
-                        statusColor,
-                        health,
-                        healthColor,
-                        volume,
-                      }) => (
-                        <tr
-                          key={id}
-                          className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                          onClick={() =>
-                            router.push(`/dashboard/merchants/${id}/profile`)
-                          }
+            <>
+              <FilterBar {...filterBarProps} />
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      {[
+                        "Merchant",
+                        "Category",
+                        "Country",
+                        "Status",
+                        "Health",
+                        "Volume",
+                        "Action",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-5 py-3.5 text-left text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
                         >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center">
-                                {name.charAt(0).toUpperCase()}
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedActive.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="text-center py-12 text-slate-400 text-sm"
+                        >
+                          {hasActiveFilters
+                            ? "No active merchants match your filters."
+                            : "No active merchants found."}
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedActive.map(
+                        ({
+                          id,
+                          clientRefNo,
+                          name,
+                          category,
+                          country,
+                          status,
+                          statusColor,
+                          health,
+                          healthColor,
+                          volume,
+                        }) => (
+                          <tr
+                            key={id}
+                            className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                            onClick={() =>
+                              router.push(`/dashboard/merchants/${id}/profile`)
+                            }
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center">
+                                  {name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-slate-800 text-[13px]">
+                                    {name}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">
+                                    ID: {id}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">
+                                    {clientRefNo}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-bold text-slate-800 text-[13px]">
-                                  {name}
-                                </p>
-                                <p className="text-[11px] text-slate-400">
-                                  CLIENT ID: {id}
-                                </p>
-                                <p className="text-[11px] text-slate-400">
-                                  REF NO: {clientRefNo}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-slate-600 text-sm">
-                            {category}
-                          </td>
-                          <td className="px-5 py-4 text-slate-600 text-sm">
-                            {country}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${statusColor}`}
-                            >
-                              {status}
-                            </span>
-                          </td>
-                          {/* <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-1.5 bg-slate-100 rounded-full">
-                                <div
-                                  className={`h-1.5 rounded-full ${healthColor}`}
-                                  style={{ width: `${health}%` }}
-                                />
-                              </div>
-                              <span className="text-xs font-bold text-slate-600">
-                                {health}%
+                            </td>
+                            <td className="px-5 py-4 text-slate-600 text-sm">
+                              {category}
+                            </td>
+                            <td className="px-5 py-4 text-slate-600 text-sm">
+                              {country}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${statusColor}`}
+                              >
+                                {status}
                               </span>
-                            </div>
-                          </td> */}
-                          <td className="px-5 py-4 font-bold text-slate-800">
-                            {volume}
-                          </td>
-                          <td className="px-5 py-4">
-                            <button className="text-[11px] font-bold text-blue-700 hover:underline tracking-widest uppercase">
-                              View Profile
-                            </button>
-                          </td>
-                        </tr>
-                      ),
-                    )
-                  )}
-                </tbody>
-              </table>
-              <Pagination
-                currentPage={activePage}
-                totalPages={activeTotalPages}
-                onPageChange={(p) => setActivePage(p)}
-                totalItems={filteredActive.length}
-                pageSize={PAGE_SIZE}
-              />
-            </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-slate-100 rounded-full">
+                                  <div
+                                    className={`h-1.5 rounded-full ${healthColor}`}
+                                    style={{ width: `${health}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-bold text-slate-600">
+                                  {health}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 font-bold text-slate-800">
+                              {volume}
+                            </td>
+                            <td className="px-5 py-4">
+                              <button className="text-[11px] font-bold text-blue-700 hover:underline tracking-widests uppercase">
+                                View Profile
+                              </button>
+                            </td>
+                          </tr>
+                        ),
+                      )
+                    )}
+                  </tbody>
+                </table>
+                <Pagination
+                  currentPage={activePage}
+                  totalPages={activeTotalPages}
+                  onPageChange={setActivePage}
+                  totalItems={filteredActive.length}
+                  pageSize={PAGE_SIZE}
+                />
+              </div>
+            </>
           )}
         </>
       )}
