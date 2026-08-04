@@ -1,12 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Download } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import DateRangeFilter, { DateRange } from "@/components/DateRangeFilter";
-
-const PAGE_SIZE = 5;
 
 const statusMap: Record<
   number,
@@ -32,613 +28,407 @@ const statusMap: Record<
   },
 };
 
-function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-  totalItems,
-  pageSize,
-}: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (p: number) => void;
-  totalItems: number;
-  pageSize: number;
-}) {
-  const start = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const end = Math.min(currentPage * pageSize, totalItems);
-  return (
-    <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
-      <p className="text-xs text-slate-400">
-        Showing {start} to {end} of {totalItems} results
-      </p>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 transition text-sm disabled:opacity-40"
-        >
-          ‹
-        </button>
-        {Array.from({ length: Math.min(3, totalPages) }, (_, i) => i + 1).map(
-          (n) => (
-            <button
-              key={n}
-              onClick={() => onPageChange(n)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition ${
-                currentPage === n
-                  ? "text-white"
-                  : "text-slate-600 hover:bg-slate-50 border border-slate-200"
-              }`}
-              style={
-                currentPage === n
-                  ? { background: "linear-gradient(135deg, #1a3de4, #1230b8)" }
-                  : {}
-              }
-            >
-              {n}
-            </button>
-          ),
-        )}
-        {totalPages > 3 && (
-          <>
-            <span className="text-slate-400 px-1">...</span>
-            <button
-              onClick={() => onPageChange(totalPages)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition ${
-                currentPage === totalPages
-                  ? "text-white"
-                  : "text-slate-600 hover:bg-slate-50 border border-slate-200"
-              }`}
-              style={
-                currentPage === totalPages
-                  ? { background: "linear-gradient(135deg, #1a3de4, #1230b8)" }
-                  : {}
-              }
-            >
-              {totalPages}
-            </button>
-          </>
-        )}
-        <button
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages || totalPages === 0}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 transition text-sm disabled:opacity-40"
-        >
-          ›
-        </button>
-      </div>
-    </div>
-  );
-}
+const paymentMethodMap: Record<number, string> = {
+  0: "—",
+  1: "Mobile Money",
+  2: "Card",
+  3: "Bank Transfer",
+};
 
-interface FilterBarProps {
-  search: string;
-  setSearch: (v: string) => void;
-  statusFilter: string;
-  setStatusFilter: (v: string) => void;
-  currencyFilter: string;
-  setCurrencyFilter: (v: string) => void;
-  dateRange: DateRange;
-  setDateRange: (v: DateRange) => void;
-  uniqueCurrencies: string[];
-  hasActiveFilters: boolean;
-  onClearAll: () => void;
-  onPageReset: () => void;
-}
+const paymentTypeMap: Record<number, string> = {
+  0: "—",
+  1: "One Time",
+  2: "Recurring",
+};
 
-function FilterBar({
-  search,
-  setSearch,
-  statusFilter,
-  setStatusFilter,
-  currencyFilter,
-  setCurrencyFilter,
-  dateRange,
-  setDateRange,
-  uniqueCurrencies,
-  hasActiveFilters,
-  onClearAll,
-  onPageReset,
-}: FilterBarProps) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 space-y-3">
-      {/* Row 1 — Search */}
-      <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2.5">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#94a3b8"
-          strokeWidth="2"
-          className="shrink-0"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            onPageReset();
-          }}
-          placeholder="Search by order number, transaction ID, or client ID..."
-          className="bg-transparent text-sm text-slate-600 placeholder-slate-400 focus:outline-none w-full"
-        />
-        {search && (
-          <button
-            onClick={() => {
-              setSearch("");
-              onPageReset();
-            }}
-            className="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none shrink-0"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      {/* Row 2 — Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Status */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              onPageReset();
-            }}
-            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
-          >
-            <option value="">All Statuses</option>
-            <option value="1">Pending</option>
-            <option value="2">Paid</option>
-            <option value="3">Failed</option>
-          </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
-            ▾
-          </span>
-        </div>
-
-        {/* Currency */}
-        <div className="relative">
-          <select
-            value={currencyFilter}
-            onChange={(e) => {
-              setCurrencyFilter(e.target.value);
-              onPageReset();
-            }}
-            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
-          >
-            <option value="">All Currencies</option>
-            {uniqueCurrencies.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
-            ▾
-          </span>
-        </div>
-
-        {/* Date range */}
-        <DateRangeFilter
-          value={dateRange}
-          onChange={(range) => {
-            setDateRange(range);
-            onPageReset();
-          }}
-          placeholder="Date range"
-        />
-
-        {/* Clear all */}
-        {hasActiveFilters && (
-          <button
-            onClick={onClearAll}
-            className="px-3 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition whitespace-nowrap"
-          >
-            Clear All
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function TransactionsPage() {
+export default function TransactionDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transaction, setTransaction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Filter state
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [currencyFilter, setCurrencyFilter] = useState("");
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: null,
-    to: null,
-  });
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const fetchTransactions = async () => {
+    const fetchTransaction = async () => {
       try {
         const data = await apiGet(
-          "/admin/client/transactions",
+          `/admin/client/transaction-details/${id}`,
           getToken() ?? undefined,
         );
-        const list = Array.isArray(data)
-          ? data
-          : (data.content ?? data.data ?? []);
-        setTransactions(list);
+        setTransaction(data);
       } catch (err: any) {
-        setFetchError(err.message ?? "Failed to load transactions.");
+        setError(err.message ?? "Failed to load transaction.");
       } finally {
         setLoading(false);
       }
     };
-    fetchTransactions();
-  }, []);
+    fetchTransaction();
+  }, [id]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "—";
+    const d = new Date(dateStr);
     return (
-      new Date(dateStr).toLocaleDateString("en-GB", {
+      d.toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric",
       }) +
-      "\n" +
-      new Date(dateStr).toLocaleTimeString("en-GB", {
+      " · " +
+      d.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
+        second: "2-digit",
       })
     );
   };
 
-  const uniqueCurrencies = [
-    ...new Set(transactions.map((t: any) => t.currency).filter(Boolean)),
-  ];
-
-  const filtered = transactions.filter((t: any) => {
-    const matchSearch =
-      t.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      t.transactionId?.toLowerCase().includes(search.toLowerCase()) ||
-      String(t.clientId).includes(search) ||
-      t.clientName?.toLowerCase().includes(search.toLowerCase());
-
-    const matchStatus = statusFilter ? String(t.status) === statusFilter : true;
-    const matchCurrency = currencyFilter ? t.currency === currencyFilter : true;
-
-    const createdAt = t.createdAt ? new Date(t.createdAt) : null;
-    const matchDate =
-      dateRange.from && dateRange.to && createdAt
-        ? createdAt >= dateRange.from && createdAt <= dateRange.to
-        : dateRange.from && createdAt
-          ? createdAt >= dateRange.from
-          : true;
-
-    return matchSearch && matchStatus && matchCurrency && matchDate;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
-
-  const hasActiveFilters = !!(
-    search ||
-    statusFilter ||
-    currencyFilter ||
-    dateRange.from
-  );
-
-  const clearAllFilters = () => {
-    setSearch("");
-    setStatusFilter("");
-    setCurrencyFilter("");
-    setDateRange({ from: null, to: null });
-    setCurrentPage(1);
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const kpis = [
-    {
-      label: "Total Transactions",
-      value: loading ? "—" : transactions.length.toString(),
-      valueColor: "text-blue-700",
-      border: "border-l-blue-700",
-    },
-    {
-      label: "Paid",
-      value: loading
-        ? "—"
-        : transactions.filter((t) => t.status === 2).length.toString(),
-      valueColor: "text-green-600",
-      border: "border-l-green-500",
-    },
-    {
-      label: "Pending",
-      value: loading
-        ? "—"
-        : transactions.filter((t) => t.status === 1).length.toString(),
-      valueColor: "text-amber-600",
-      border: "border-l-amber-500",
-    },
-    {
-      label: "Failed",
-      value: loading
-        ? "—"
-        : transactions.filter((t) => t.status === 3).length.toString(),
-      valueColor: "text-red-600",
-      border: "border-l-red-500",
-    },
-  ];
-
-  return (
-    <div>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Transactions
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Monitor and manage all platform payment transactions.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
-            <Download size={15} /> Export CSV
-          </button>
-          <button
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
-            style={{ background: "linear-gradient(135deg, #1a3de4, #1230b8)" }}
-          >
-            + New Entry
-          </button>
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <svg
+          className="animate-spin text-blue-700"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+        <span className="ml-3 text-sm text-slate-500 font-medium">
+          Loading transaction...
+        </span>
       </div>
+    );
+  }
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {kpis.map(({ label, value, valueColor, border }) => (
-          <div
-            key={label}
-            className={`bg-white rounded-xl border border-slate-200 border-l-4 ${border} px-5 py-4`}
-          >
-            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">
-              {label}
-            </p>
-            {loading ? (
-              <div className="h-8 w-16 bg-slate-100 rounded-lg animate-pulse" />
-            ) : (
-              <span className={`text-3xl font-black ${valueColor}`}>
-                {value}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Filter bar */}
-      <FilterBar
-        search={search}
-        setSearch={setSearch}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        currencyFilter={currencyFilter}
-        setCurrencyFilter={setCurrencyFilter}
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        uniqueCurrencies={uniqueCurrencies}
-        hasActiveFilters={hasActiveFilters}
-        onClearAll={clearAllFilters}
-        onPageReset={() => setCurrentPage(1)}
-      />
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-20 bg-white rounded-xl border border-slate-200">
+  if (error || !transaction) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-2">
           <svg
-            className="animate-spin text-blue-700"
             width="24"
             height="24"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
-          <span className="ml-3 text-sm text-slate-500 font-medium">
-            Loading transactions...
-          </span>
-        </div>
-      )}
-
-      {/* Error */}
-      {fetchError && !loading && (
-        <div className="flex gap-3 bg-red-50 border border-red-100 rounded-xl px-5 py-4 mb-4">
-          <svg
-            className="shrink-0 mt-0.5 text-red-500"
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
+            stroke="#dc2626"
             strokeWidth="2"
           >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <div>
-            <p className="text-sm font-bold text-red-600">
-              Failed to load transactions
+        </div>
+        <p className="text-slate-800 font-bold">
+          {error || "Transaction not found"}
+        </p>
+        <button
+          onClick={() => router.push("/dashboard/transactions")}
+          className="text-blue-700 text-sm font-semibold hover:underline"
+        >
+          ← Back to Transactions
+        </button>
+      </div>
+    );
+  }
+
+  const status = statusMap[transaction.status] ?? {
+    label: "UNKNOWN",
+    color: "text-slate-500",
+    bg: "bg-slate-100",
+    dot: "bg-slate-400",
+  };
+
+  return (
+    <div>
+      {/* Back */}
+      <div className="mb-5">
+        <button
+          onClick={() => router.push("/dashboard/transactions")}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white hover:opacity-90 transition"
+          style={{ background: "linear-gradient(135deg, #1a3de4, #1230b8)" }}
+        >
+          ← Back to Transactions
+        </button>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <p className="text-[10px] font-black tracking-[0.2em] text-blue-700 uppercase mb-1">
+            Transaction Detail
+          </p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            {transaction.orderNumber}
+          </h1>
+          <p className="text-slate-400 text-sm mt-0.5 font-mono break-all">
+            {transaction.transactionId}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${status.dot}`} />
+          <span
+            className={`px-4 py-2 rounded-xl text-sm font-bold tracking-wide ${status.bg} ${status.color}`}
+          >
+            {status.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Top 3 cards */}
+      <div className="grid grid-cols-3 gap-5 mb-5">
+        {/* Amount */}
+        <div className="bg-white rounded-xl border border-slate-200 border-l-4 border-l-blue-700 px-6 py-5">
+          <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-2">
+            Transaction Amount
+          </p>
+          <p className="text-4xl font-black text-slate-900 mb-1">
+            {transaction.currency}{" "}
+            {Number(transaction.amount).toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+            })}
+          </p>
+          <div className="flex items-center gap-1.5 mt-2">
+            <span
+              className={`w-2 h-2 rounded-full ${transaction.processed ? "bg-green-500" : "bg-amber-500"}`}
+            />
+            <span className="text-xs text-slate-500 font-medium">
+              {transaction.processed ? "Processed" : "Not yet processed"}
+            </span>
+          </div>
+        </div>
+
+        {/* Payment info */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-3">
+            Payment Info
+          </p>
+          <div className="space-y-3">
+            {[
+              { label: "Provider", value: transaction.provider ?? "—" },
+              {
+                label: "Method",
+                value: paymentMethodMap[transaction.paymentMethod] ?? "—",
+              },
+              {
+                label: "Type",
+                value: paymentTypeMap[transaction.paymentType] ?? "—",
+              },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {label}
+                </span>
+                <span className="text-sm font-bold text-slate-700">
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Client */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <p className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-3">
+            Client
+          </p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center shrink-0">
+              {transaction.clientName
+                ? transaction.clientName.charAt(0).toUpperCase()
+                : "#"}
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">
+                {transaction.clientName ?? `Client #${transaction.clientId}`}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                ID: {transaction.clientId}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() =>
+              router.push(`/dashboard/merchants/${transaction.clientId}`)
+            }
+            className="w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-50 transition"
+          >
+            View Merchant Profile →
+          </button>
+        </div>
+      </div>
+
+      {/* References */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-5">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-1 h-5 bg-blue-700 rounded-full" />
+          <p className="font-bold text-slate-900">Transaction References</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { label: "Transaction ID", value: transaction.transactionId },
+            { label: "Payment Reference", value: transaction.paymentReference },
+            { label: "Order Number", value: transaction.orderNumber },
+            { label: "Order ID", value: `#${transaction.orderId}` },
+          ].map(({ label, value }) => (
+            <div
+              key={label}
+              className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100"
+            >
+              <p className="text-[10px] font-bold tracking-widests text-slate-400 uppercase mb-1">
+                {label}
+              </p>
+              <p className="text-sm font-mono font-bold text-slate-800 break-all">
+                {value ?? "—"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Full details grid */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-5">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-1 h-5 bg-purple-500 rounded-full" />
+          <p className="font-bold text-slate-900">Full Details</p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-12">
+          {[
+            {
+              label: "Amount",
+              value: `${transaction.currency} ${Number(transaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+            },
+            { label: "Currency", value: transaction.currency },
+            { label: "Status", value: status.label },
+            { label: "Processed", value: transaction.processed ? "Yes" : "No" },
+            { label: "Provider", value: transaction.provider ?? "—" },
+            {
+              label: "Payment Method",
+              value: paymentMethodMap[transaction.paymentMethod] ?? "—",
+            },
+            {
+              label: "Payment Type",
+              value: paymentTypeMap[transaction.paymentType] ?? "—",
+            },
+            { label: "Remarks", value: transaction.remarks ?? "—" },
+            { label: "Created At", value: formatDate(transaction.createdAt) },
+            {
+              label: "Paid At",
+              value: transaction.paidAt ? formatDate(transaction.paidAt) : "—",
+            },
+          ].map(({ label, value }) => (
+            <div
+              key={label}
+              className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0"
+            >
+              <span className="text-[10px] font-bold tracking-widests text-slate-400 uppercase">
+                {label}
+              </span>
+              <span className="text-sm font-bold text-slate-700">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Payment link */}
+      {transaction.paymentLink && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-5 bg-amber-500 rounded-full" />
+            <p className="font-bold text-slate-900">Payment Link</p>
+          </div>
+          <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2"
+            >
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            <p className="text-sm font-mono text-slate-600 flex-1 truncate">
+              {transaction.paymentLink}
             </p>
-            <p className="text-xs text-red-500 mt-0.5">{fetchError}</p>
+            <button
+              onClick={() => window.open(transaction.paymentLink, "_blank")}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold hover:bg-blue-100 transition"
+            >
+              Open →
+            </button>
+            <button
+              onClick={() => handleCopy(transaction.paymentLink)}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-200 transition"
+            >
+              {copied ? "Copied ✓" : "Copy"}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Table */}
-      {!loading && !fetchError && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                {[
-                  "Transaction",
-                  "Order",
-                  "Client",
-                  "Amount",
-                  "Provider",
-                  "Status",
-                  "Created",
-                  "Paid At",
-                  "Action",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-5 py-3.5 text-left text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="text-center py-12 text-slate-400 text-sm"
-                  >
-                    {hasActiveFilters
-                      ? "No transactions match your filters."
-                      : "No transactions found."}
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((t, i) => {
-                  const status = statusMap[t.status] ?? {
-                    label: "UNKNOWN",
-                    color: "text-slate-500",
-                    bg: "bg-slate-100",
-                    dot: "bg-slate-400",
-                  };
-                  const barColors = [
-                    "bg-blue-600",
-                    "bg-purple-500",
-                    "bg-amber-500",
-                    "bg-red-500",
-                    "bg-green-500",
-                    "bg-indigo-500",
-                  ];
-                  return (
-                    <tr
-                      key={t.id}
-                      className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() =>
-                        router.push(`/dashboard/transactions/${t.id}`)
-                      }
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-0.5 h-8 rounded-full ${barColors[i % barColors.length]} shrink-0`}
-                          />
-                          <div>
-                            <p className="font-bold text-slate-800 text-[12px] font-mono">
-                              {t.transactionId?.slice(0, 8)}...
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-mono">
-                              {t.paymentReference?.slice(0, 8)}...
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-slate-800 text-[12px]">
-                          {t.orderNumber}
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          Order #{t.orderId}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-slate-700 text-[12px]">
-                          {t.clientName ?? `Client #${t.clientId}`}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-black text-slate-900 text-sm">
-                          {t.currency}{" "}
-                          {Number(t.amount).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600">
-                          {t.provider ?? "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`w-2 h-2 rounded-full ${status.dot}`}
-                          />
-                          <span
-                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide ${status.bg} ${status.color}`}
-                          >
-                            {status.label}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-slate-600 text-[12px] whitespace-pre-line">
-                        {formatDate(t.createdAt)}
-                      </td>
-                      <td className="px-5 py-4 text-slate-600 text-[12px] whitespace-pre-line">
-                        {t.paidAt ? (
-                          formatDate(t.paidAt)
-                        ) : (
-                          <span className="text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td
-                        className="px-5 py-4"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() =>
-                            router.push(`/dashboard/transactions/${t.id}`)
-                          }
-                          className="text-[11px] font-bold text-blue-700 hover:underline tracking-widest uppercase"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            totalItems={filtered.length}
-            pageSize={PAGE_SIZE}
-          />
+      {/* Timeline */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <div className="w-1 h-5 bg-green-500 rounded-full" />
+          <p className="font-bold text-slate-900">Transaction Timeline</p>
         </div>
-      )}
+        <div className="relative pl-6">
+          <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100" />
+          <div className="space-y-6">
+            {[
+              {
+                label: "Transaction Created",
+                time: formatDate(transaction.createdAt),
+                color: "bg-blue-600",
+                desc: `Order ${transaction.orderNumber} was initiated for ${transaction.currency} ${Number(transaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}.`,
+                show: true,
+              },
+              {
+                label: "Payment Received",
+                time: transaction.paidAt
+                  ? formatDate(transaction.paidAt)
+                  : null,
+                color: "bg-green-500",
+                desc: `Payment of ${transaction.currency} ${Number(transaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} received via ${transaction.provider ?? "provider"}.`,
+                show: !!transaction.paidAt,
+              },
+              {
+                label: "Transaction Processed",
+                time: transaction.paidAt ? formatDate(transaction.paidAt) : "—",
+                color: "bg-purple-500",
+                desc: "Transaction has been fully processed and reconciled.",
+                show: transaction.processed,
+              },
+            ]
+              .filter((e) => e.show)
+              .map(({ label, time, color, desc }) => (
+                <div key={label} className="flex items-start gap-4">
+                  <div
+                    className={`w-4 h-4 rounded-full ${color} shrink-0 mt-0.5 ring-4 ring-white`}
+                  />
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">{label}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{time}</p>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Search } from "lucide-react";
+import { Download } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import DateRangeFilter, { DateRange } from "@/components/DateRangeFilter";
 
 const PAGE_SIZE = 5;
 
@@ -30,15 +31,6 @@ const statusMap: Record<
     dot: "bg-red-500",
   },
 };
-
-const barColors = [
-  "bg-blue-600",
-  "bg-purple-500",
-  "bg-amber-500",
-  "bg-red-500",
-  "bg-green-500",
-  "bg-indigo-500",
-];
 
 function Pagination({
   currentPage,
@@ -120,13 +112,157 @@ function Pagination({
   );
 }
 
+interface FilterBarProps {
+  search: string;
+  setSearch: (v: string) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  currencyFilter: string;
+  setCurrencyFilter: (v: string) => void;
+  dateRange: DateRange;
+  setDateRange: (v: DateRange) => void;
+  uniqueCurrencies: string[];
+  hasActiveFilters: boolean;
+  onClearAll: () => void;
+  onPageReset: () => void;
+}
+
+function FilterBar({
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  currencyFilter,
+  setCurrencyFilter,
+  dateRange,
+  setDateRange,
+  uniqueCurrencies,
+  hasActiveFilters,
+  onClearAll,
+  onPageReset,
+}: FilterBarProps) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 space-y-3">
+      {/* Row 1 — Search */}
+      <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2.5">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          className="shrink-0"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            onPageReset();
+          }}
+          placeholder="Search by order number, transaction ID, or client ID..."
+          className="bg-transparent text-sm text-slate-600 placeholder-slate-400 focus:outline-none w-full"
+        />
+        {search && (
+          <button
+            onClick={() => {
+              setSearch("");
+              onPageReset();
+            }}
+            className="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none shrink-0"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Row 2 — Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Status */}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              onPageReset();
+            }}
+            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+          >
+            <option value="">All Statuses</option>
+            <option value="1">Pending</option>
+            <option value="2">Paid</option>
+            <option value="3">Failed</option>
+          </select>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+            ▾
+          </span>
+        </div>
+
+        {/* Currency */}
+        <div className="relative">
+          <select
+            value={currencyFilter}
+            onChange={(e) => {
+              setCurrencyFilter(e.target.value);
+              onPageReset();
+            }}
+            className="appearance-none pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+          >
+            <option value="">All Currencies</option>
+            {uniqueCurrencies.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+            ▾
+          </span>
+        </div>
+
+        {/* Date range */}
+        <DateRangeFilter
+          value={dateRange}
+          onChange={(range) => {
+            setDateRange(range);
+            onPageReset();
+          }}
+          placeholder="Date range"
+        />
+
+        {/* Clear all */}
+        {hasActiveFilters && (
+          <button
+            onClick={onClearAll}
+            className="px-3 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition whitespace-nowrap"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function TransactionsPage() {
   const router = useRouter();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Filter state
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [currencyFilter, setCurrencyFilter] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: null,
+    to: null,
+  });
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -164,19 +300,51 @@ export default function TransactionsPage() {
     );
   };
 
-  const filtered = transactions.filter(
-    (t) =>
+  const uniqueCurrencies = [
+    ...new Set(transactions.map((t: any) => t.currency).filter(Boolean)),
+  ];
+
+  const filtered = transactions.filter((t: any) => {
+    const matchSearch =
       t.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
       t.transactionId?.toLowerCase().includes(search.toLowerCase()) ||
-      t.currency?.toLowerCase().includes(search.toLowerCase()) ||
-      String(t.clientId).includes(search),
-  );
+      String(t.clientId).includes(search) ||
+      t.clientName?.toLowerCase().includes(search.toLowerCase());
+
+    const matchStatus = statusFilter ? String(t.status) === statusFilter : true;
+    const matchCurrency = currencyFilter ? t.currency === currencyFilter : true;
+
+    const createdAt = t.createdAt ? new Date(t.createdAt) : null;
+    const matchDate =
+      dateRange.from && dateRange.to && createdAt
+        ? createdAt >= dateRange.from && createdAt <= dateRange.to
+        : dateRange.from && createdAt
+          ? createdAt >= dateRange.from
+          : true;
+
+    return matchSearch && matchStatus && matchCurrency && matchDate;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
+
+  const hasActiveFilters = !!(
+    search ||
+    statusFilter ||
+    currencyFilter ||
+    dateRange.from
+  );
+
+  const clearAllFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setCurrencyFilter("");
+    setDateRange({ from: null, to: null });
+    setCurrentPage(1);
+  };
 
   const kpis = [
     {
@@ -257,28 +425,21 @@ export default function TransactionsPage() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2.5">
-          <Search size={14} className="text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search by order number, transaction ID, or client..."
-            className="bg-transparent text-sm text-slate-600 placeholder-slate-400 focus:outline-none w-full"
-          />
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-          All Status <span className="text-slate-400">▾</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-          All Currencies <span className="text-slate-400">▾</span>
-        </button>
-      </div>
+      {/* Filter bar */}
+      <FilterBar
+        search={search}
+        setSearch={setSearch}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        currencyFilter={currencyFilter}
+        setCurrencyFilter={setCurrencyFilter}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        uniqueCurrencies={uniqueCurrencies}
+        hasActiveFilters={hasActiveFilters}
+        onClearAll={clearAllFilters}
+        onPageReset={() => setCurrentPage(1)}
+      />
 
       {/* Loading */}
       {loading && (
@@ -316,7 +477,12 @@ export default function TransactionsPage() {
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <p className="text-sm text-red-600">{fetchError}</p>
+          <div>
+            <p className="text-sm font-bold text-red-600">
+              Failed to load transactions
+            </p>
+            <p className="text-xs text-red-500 mt-0.5">{fetchError}</p>
+          </div>
         </div>
       )}
 
@@ -329,7 +495,7 @@ export default function TransactionsPage() {
                 {[
                   "Transaction",
                   "Order",
-                  "Business Name",
+                  "Client",
                   "Amount",
                   "Provider",
                   "Status",
@@ -353,7 +519,9 @@ export default function TransactionsPage() {
                     colSpan={9}
                     className="text-center py-12 text-slate-400 text-sm"
                   >
-                    No transactions found.
+                    {hasActiveFilters
+                      ? "No transactions match your filters."
+                      : "No transactions found."}
                   </td>
                 </tr>
               ) : (
@@ -364,6 +532,14 @@ export default function TransactionsPage() {
                     bg: "bg-slate-100",
                     dot: "bg-slate-400",
                   };
+                  const barColors = [
+                    "bg-blue-600",
+                    "bg-purple-500",
+                    "bg-amber-500",
+                    "bg-red-500",
+                    "bg-green-500",
+                    "bg-indigo-500",
+                  ];
                   return (
                     <tr
                       key={t.id}
@@ -397,7 +573,7 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-5 py-4">
                         <p className="font-bold text-slate-700 text-[12px]">
-                          {t.clientName ?? `Business #${t.clientId}`}
+                          {t.clientName ?? `Client #${t.clientId}`}
                         </p>
                       </td>
                       <td className="px-5 py-4">
