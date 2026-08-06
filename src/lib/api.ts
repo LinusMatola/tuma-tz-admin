@@ -110,15 +110,22 @@ export const apiDelete = async (endpoint: string, token?: string) => {
     throw new Error("Session expired. Please log in again.");
   }
 
- if (!res.ok) {
-  const error = await res.json().catch(() => ({ message: "Request failed" }));
-  const message = error.message ?? "Something went wrong";
-  if (message.toLowerCase().includes("jwt expired") || message.toLowerCase().includes("expired")) {
-    handleUnauthorized();
-    throw new Error("Session expired. Please log in again.");
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: "Request failed" }));
+    const message = error.message ?? "Something went wrong";
+    if (message.toLowerCase().includes("jwt expired") || message.toLowerCase().includes("expired")) {
+      handleUnauthorized();
+      throw new Error("Session expired. Please log in again.");
+    }
+    throw new Error(message);
   }
-  throw new Error(message);
-}
 
-  return res.json();
+  // Handle empty response body (e.g. 200 OK with no content)
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 };

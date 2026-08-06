@@ -1,57 +1,40 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiPost } from "@/lib/api";
-import { saveAuth } from "@/lib/auth";
-import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+export default function VerifyTempPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
-
-  const searchParams = useSearchParams();
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("reset") === "success") {
-      setResetSuccess(true);
-    }
-  }, [searchParams]);
-
-  const handleSubmit = async () => {
-    if (!email || !password) {
-      setError("Please enter your email and password.");
+    const stored = sessionStorage.getItem("tuma_first_login_email");
+    if (!stored) {
+      router.push("/first-login");
       return;
     }
+    setEmail(stored);
+  }, []);
 
+  const handleSubmit = async () => {
+    if (!tempPassword.trim()) {
+      setError("Please enter the temporary password from your email.");
+      return;
+    }
     setLoading(true);
     setError("");
-
     try {
-      const data = await apiPost("/account/login", {
-        email,
-        pin: password, // field is "pin" in current API, will update to "password" when Linus updates
-      });
-
-      saveAuth({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        clientId: data.clientId,
-      });
-
-      // 2FA check — when Linus provides the flag, this will route to /verify-otp
-      if (data.twoFactorEnabled) {
-        sessionStorage.setItem("tuma_2fa_email", email);
-        router.push("/verify-otp");
-      } else {
-        router.push("/dashboard");
-      }
+      // TODO: replace with real API when Linus provides endpoint
+      // const data = await apiPost("/account/login", { email, password: tempPassword });
+      // saveAuth(data);
+      await new Promise((r) => setTimeout(r, 1000)); // simulate API call
+      sessionStorage.setItem("tuma_reset_email", email);
+      router.push("/reset-password");
     } catch (err: any) {
-      setError(err.message ?? "Invalid credentials. Please try again.");
+      setError(err.message ?? "Invalid temporary password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -72,64 +55,31 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 mt-1">
               <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
               <span className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
-                Secure System Entry
+                Account Setup
               </span>
             </div>
           </div>
 
           <h2 className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">
-            Log In
+            Enter Temporary Password
           </h2>
-          <p className="text-slate-500 text-sm mb-8">
-            Enter your credentials to access the control hub.
+          <p className="text-slate-500 text-sm mb-2">
+            We sent a temporary password to
           </p>
+          <p className="font-bold text-slate-800 text-sm mb-8">{email}</p>
 
-          {resetSuccess && (
-            <div className="flex gap-3 bg-green-50 border border-green-100 rounded-lg px-4 py-3 mb-5">
-              <svg
-                className="shrink-0 mt-0.5 text-green-600"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <p className="text-xs text-green-700 leading-relaxed">
-                Password set successfully. Log in with your new password below.
-              </p>
-            </div>
-          )}
           <div className="space-y-5">
-            {/* Email */}
             <div>
               <label className="block text-[11px] font-bold tracking-[0.12em] text-slate-600 uppercase mb-2">
-                Work Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                placeholder="operator@tuma.com"
-                className="w-full px-4 py-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-[11px] font-bold tracking-[0.12em] text-slate-600 uppercase mb-2">
-                Password
+                Temporary Password
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={tempPassword}
+                  onChange={(e) => setTempPassword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                  placeholder="••••••••"
+                  placeholder="Enter temporary password"
                   className="w-full px-4 py-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition pr-12"
                 />
                 <button
@@ -166,11 +116,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Error message */}
             {error && (
               <div className="flex gap-3 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
                 <svg
-                  className="flex-shrink-0 mt-0.5 text-red-500"
+                  className="shrink-0 mt-0.5 text-red-500"
                   width="15"
                   height="15"
                   viewBox="0 0 24 24"
@@ -182,14 +131,13 @@ export default function LoginPage() {
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                <p className="text-xs text-red-600 leading-relaxed">{error}</p>
+                <p className="text-xs text-red-600">{error}</p>
               </div>
             )}
 
-            {/* 2FA notice */}
-            <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3">
               <svg
-                className="flex-shrink-0 mt-0.5 text-blue-600"
+                className="shrink-0 text-amber-600"
                 width="15"
                 height="15"
                 viewBox="0 0 24 24"
@@ -201,17 +149,16 @@ export default function LoginPage() {
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              <p className="text-xs text-blue-700 leading-relaxed">
-                For first time users, a temporary password will be sent to your
-                email. You will be prompted to change it upon first login.
+              <p className="text-xs text-amber-700 leading-relaxed">
+                This password can only be used once. You'll set a new permanent
+                password on the next step.
               </p>
             </div>
 
-            {/* Submit */}
             <button
               onClick={handleSubmit}
-              disabled={loading || !email || !password}
-              className="w-full py-3.5 rounded-xl text-white text-sm font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
+              disabled={loading || !tempPassword.trim()}
+              className="w-full py-3.5 rounded-xl text-white text-sm font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
               style={{
                 background: "linear-gradient(135deg, #1a3de4, #1230b8)",
               }}
@@ -229,7 +176,7 @@ export default function LoginPage() {
                   >
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                   </svg>
-                  Authenticating...
+                  Verifying...
                 </>
               ) : (
                 <>
@@ -249,14 +196,13 @@ export default function LoginPage() {
               )}
             </button>
 
-            {/* First time link */}
-            <p className="text-center text-sm text-slate-500 mt-2">
-              First time logging in?{" "}
+            <p className="text-center text-sm text-slate-500">
+              Didn't receive the email?{" "}
               <button
                 onClick={() => router.push("/first-login")}
-                className="text-blue-700 font-semibold hover:underline transition"
+                className="text-blue-700 font-semibold hover:underline"
               >
-                Set up your account
+                Resend
               </button>
             </p>
           </div>
