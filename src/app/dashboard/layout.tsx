@@ -60,12 +60,17 @@ export default function DashboardLayout({
     <div className="min-h-screen flex bg-slate-100">
       <aside className="w-[220px] flex-shrink-0 flex flex-col bg-white border-r border-slate-200 fixed top-0 left-0 h-screen z-30">
         <div className="px-5 py-5 border-b border-slate-100">
-          <p className="text-[15px] font-bold text-slate-900 leading-tight">
-            Command Center
-          </p>
-          <p className="text-[10px] font-semibold tracking-[0.15em] text-slate-400 uppercase mt-0.5">
-            Operator V2.4
-          </p>
+          <Link
+            href="/dashboard"
+            className="inline-block cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <p className="text-[15px] font-bold text-slate-900 leading-tight">
+              Command Center
+            </p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] text-slate-400 uppercase mt-0.5">
+              Operator V2.4
+            </p>
+          </Link>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
