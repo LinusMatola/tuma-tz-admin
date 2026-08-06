@@ -1,19 +1,17 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiPost } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
-import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
-
-  const searchParams = useSearchParams();
   const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
@@ -27,23 +25,18 @@ export default function LoginPage() {
       setError("Please enter your email and password.");
       return;
     }
-
     setLoading(true);
     setError("");
-
     try {
       const data = await apiPost("/account/login", {
         email,
-        pin: password, // field is "pin" in current API, will update to "password" when Linus updates
+        pin: password,
       });
-
       saveAuth({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         clientId: data.clientId,
       });
-
-      // 2FA check — when Linus provides the flag, this will route to /verify-otp
       if (data.twoFactorEnabled) {
         sessionStorage.setItem("tuma_2fa_email", email);
         router.push("/verify-otp");
@@ -84,25 +77,28 @@ export default function LoginPage() {
             Enter your credentials to access the control hub.
           </p>
 
-          {resetSuccess && (
-            <div className="flex gap-3 bg-green-50 border border-green-100 rounded-lg px-4 py-3 mb-5">
-              <svg
-                className="shrink-0 mt-0.5 text-green-600"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <p className="text-xs text-green-700 leading-relaxed">
-                Password set successfully. Log in with your new password below.
-              </p>
-            </div>
-          )}
           <div className="space-y-5">
+            {/* Reset success banner */}
+            {resetSuccess && (
+              <div className="flex gap-3 bg-green-50 border border-green-100 rounded-lg px-4 py-3">
+                <svg
+                  className="shrink-0 mt-0.5 text-green-600"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <p className="text-xs text-green-700 leading-relaxed">
+                  Password set successfully. Log in with your new password
+                  below.
+                </p>
+              </div>
+            )}
+
             {/* Email */}
             <div>
               <label className="block text-[11px] font-bold tracking-[0.12em] text-slate-600 uppercase mb-2">
@@ -166,11 +162,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Error message */}
+            {/* Error */}
             {error && (
               <div className="flex gap-3 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
                 <svg
-                  className="flex-shrink-0 mt-0.5 text-red-500"
+                  className="shrink-0 mt-0.5 text-red-500"
                   width="15"
                   height="15"
                   viewBox="0 0 24 24"
@@ -189,7 +185,7 @@ export default function LoginPage() {
             {/* 2FA notice */}
             <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
               <svg
-                className="flex-shrink-0 mt-0.5 text-blue-600"
+                className="shrink-0 mt-0.5 text-blue-600"
                 width="15"
                 height="15"
                 viewBox="0 0 24 24"
@@ -250,7 +246,7 @@ export default function LoginPage() {
             </button>
 
             {/* First time link */}
-            <p className="text-center text-sm text-slate-500 mt-2">
+            <p className="text-center text-sm text-slate-500">
               First time logging in?{" "}
               <button
                 onClick={() => router.push("/first-login")}
@@ -263,5 +259,29 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex items-center justify-center">
+          <svg
+            className="animate-spin text-blue-700"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
