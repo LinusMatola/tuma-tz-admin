@@ -8,8 +8,10 @@ import RoleDetailPanel from "./components/RoleDetailPanel";
 import CreateRoleModal from "./components/CreateRoleModal";
 import EditRoleModal from "./components/EditRoleModal";
 import DeleteRoleModal from "./components/DeleteRoleModal";
-import AddPermissionModal from "@/app/dashboard/access-manager/components/AddPermissionsModal";
+import AddPermissionModal from "./components/AddPermissionsModal";
 import AssignRoleModal from "./components/AssignRoleModal";
+import RegisterUserModal from "./components/RegisterUserModal";
+import UsersTable from "./components/UsersTable";
 
 export interface Role {
   id: number;
@@ -24,18 +26,29 @@ export default function AccessManagerPage() {
   const router = useRouter();
   const rightPanelRef = useRef<HTMLDivElement>(null);
 
+  // ── Tab ───────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<"roles" | "users">("roles");
+
+  // ── Roles state ───────────────────────────────────────
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
+  // ── Users state ───────────────────────────────────────
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  // ── Modal visibility ──────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddPermModal, setShowAddPermModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // ── Fetch all roles ──────────────────────────────
+  // ── Fetch roles ───────────────────────────────────────
   const fetchRoles = async () => {
     setLoading(true);
     setError("");
@@ -49,7 +62,7 @@ export default function AccessManagerPage() {
     }
   };
 
-  // ── Fetch single role ────────────────────────────
+  // ── Fetch single role ─────────────────────────────────
   const fetchRoleById = async (id: number): Promise<Role | null> => {
     try {
       const data = await apiGet(`/roles/${id}`, getToken() ?? undefined);
@@ -59,7 +72,20 @@ export default function AccessManagerPage() {
     }
   };
 
-  // ── Refresh selected role ────────────────────────
+  // ── Fetch users ───────────────────────────────────────
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const data = await apiGet("/users/system-users", getToken() ?? undefined);
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      console.error("Failed to load users:", err.message);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  // ── Refresh selected role ─────────────────────────────
   const refreshSelectedRole = async () => {
     if (!selectedRole) return;
     const fresh = await fetchRoleById(selectedRole.id);
@@ -71,9 +97,10 @@ export default function AccessManagerPage() {
 
   useEffect(() => {
     fetchRoles();
+    fetchUsers();
   }, []);
 
-  // ── Select a role ────────────────────────────────
+  // ── Select a role ─────────────────────────────────────
   const handleSelectRole = async (role: Role) => {
     if (selectedRole?.id === role.id) {
       setSelectedRole(null);
@@ -89,7 +116,7 @@ export default function AccessManagerPage() {
     }, 100);
   };
 
-  // ── Create role ──────────────────────────────────
+  // ── Create role ───────────────────────────────────────
   const handleCreateRole = async (form: {
     roleName: string;
     description: string;
@@ -102,7 +129,7 @@ export default function AccessManagerPage() {
     fetchRoles();
   };
 
-  // ── Edit role ────────────────────────────────────
+  // ── Edit role ─────────────────────────────────────────
   const handleEditRole = async (form: {
     roleName: string;
     description: string;
@@ -117,7 +144,7 @@ export default function AccessManagerPage() {
     setRoles((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
   };
 
-  // ── Delete role ──────────────────────────────────
+  // ── Delete role ───────────────────────────────────────
   const handleDeleteRole = async () => {
     if (!selectedRole) return;
     await apiDelete(`/roles/${selectedRole.id}`, getToken() ?? undefined);
@@ -125,7 +152,7 @@ export default function AccessManagerPage() {
     fetchRoles();
   };
 
-  // ── Add permission ───────────────────────────────
+  // ── Add permission ────────────────────────────────────
   const handleAddPermission = async (permissionId: number) => {
     if (!selectedRole) return;
     await apiPost(
@@ -133,11 +160,10 @@ export default function AccessManagerPage() {
       {},
       getToken() ?? undefined,
     );
-    // Refresh the selected role to get updated permissions
     await refreshSelectedRole();
   };
 
-  // ── Remove permission ────────────────────────────
+  // ── Remove permission ─────────────────────────────────
   const handleRemovePermission = async (permissionName: string) => {
     if (!selectedRole) return;
     try {
@@ -149,7 +175,6 @@ export default function AccessManagerPage() {
         `/roles/${selectedRole.id}/permissions/${found.id}`,
         getToken() ?? undefined,
       );
-      // Manually update local state instead of relying on GET response
       const updatedPermissions = (selectedRole.permissions ?? []).filter(
         (p) => p !== permissionName,
       );
@@ -159,14 +184,6 @@ export default function AccessManagerPage() {
     } catch (err: any) {
       console.error("Failed to remove permission:", err.message);
     }
-  };
-
-  const handleAssignRole = async (userId: number, roleId: number) => {
-    await apiPut(
-      "/users/role/assign",
-      { userId, roleId },
-      getToken() ?? undefined,
-    );
   };
 
   return (
@@ -203,12 +220,11 @@ export default function AccessManagerPage() {
             Manage roles, permissions and user access across the platform.
           </p>
         </div>
-
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowAssignModal(true)}
+            onClick={() => setShowRegisterModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold hover:opacity-90 transition"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}
+            style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
           >
             <svg
               width="15"
@@ -218,12 +234,12 @@ export default function AccessManagerPage() {
               stroke="currentColor"
               strokeWidth="2.5"
             >
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="22" y1="11" x2="16" y2="11" />
             </svg>
-            Assign Role
+            Register User
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -247,7 +263,7 @@ export default function AccessManagerPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           {
             label: "Total Roles",
@@ -311,6 +327,27 @@ export default function AccessManagerPage() {
               </svg>
             ),
           },
+          {
+            label: "Total Users",
+            value: usersLoading ? "—" : users.length.toString(),
+            border: "border-l-purple-500",
+            valueColor: "text-purple-600",
+            icon: (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#7c3aed"
+                strokeWidth="2"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            ),
+          },
         ].map(({ label, value, border, valueColor, icon }) => (
           <div
             key={label}
@@ -335,8 +372,74 @@ export default function AccessManagerPage() {
         ))}
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-5 w-fit">
+        {(["roles", "users"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+              activeTab === tab
+                ? "bg-white text-blue-700 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {tab === "roles" ? (
+              <span className="flex items-center gap-2">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Roles
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                    activeTab === "roles"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {roles.length}
+                </span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                Users
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                    activeTab === "users"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {users.length}
+                </span>
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Loading */}
-      {loading && (
+      {loading && activeTab === "roles" && (
         <div className="flex items-center justify-center py-20 bg-white rounded-xl border border-slate-200">
           <svg
             className="animate-spin text-blue-700"
@@ -356,7 +459,7 @@ export default function AccessManagerPage() {
       )}
 
       {/* Error */}
-      {error && !loading && (
+      {error && !loading && activeTab === "roles" && (
         <div className="flex gap-3 bg-red-50 border border-red-100 rounded-xl px-5 py-4 mb-4">
           <svg
             className="shrink-0 mt-0.5 text-red-500"
@@ -380,8 +483,8 @@ export default function AccessManagerPage() {
         </div>
       )}
 
-      {/* Main content */}
-      {!loading && !error && (
+      {/* ── ROLES TAB ── */}
+      {activeTab === "roles" && !loading && !error && (
         <div className={`flex gap-5 ${selectedRole ? "items-start" : ""}`}>
           <div
             className={`${selectedRole ? "w-[55%] shrink-0" : "flex-1"} transition-all duration-300`}
@@ -393,11 +496,9 @@ export default function AccessManagerPage() {
               onRefresh={fetchRoles}
             />
           </div>
-
           {selectedRole && (
             <div ref={rightPanelRef} className="flex-1">
               <RoleDetailPanel
-                key={`${selectedRole.id}-${selectedRole.permissions?.join(",")}`}
                 role={selectedRole}
                 onEdit={() => setShowEditModal(true)}
                 onDelete={() => setShowDeleteModal(true)}
@@ -410,7 +511,21 @@ export default function AccessManagerPage() {
         </div>
       )}
 
-      {/* Modals */}
+      {/* ── USERS TAB ── */}
+      {activeTab === "users" && (
+        <UsersTable
+          users={users}
+          roles={roles}
+          loading={usersLoading}
+          onAssignRole={(user) => {
+            setSelectedUser(user);
+            setShowAssignModal(true);
+          }}
+          onRefresh={fetchUsers}
+        />
+      )}
+
+      {/* ── Modals ── */}
       <CreateRoleModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
@@ -436,9 +551,22 @@ export default function AccessManagerPage() {
       />
       <AssignRoleModal
         open={showAssignModal}
+        user={selectedUser}
         roles={roles}
-        onClose={() => setShowAssignModal(false)}
-        onSuccess={handleAssignRole}
+        onClose={() => {
+          setShowAssignModal(false);
+          setSelectedUser(null);
+        }}
+        onSuccess={(userId, roleId, roleName) => {
+          setUsers((prev) =>
+            prev.map((u) => (u.id === userId ? { ...u, roleId } : u)),
+          );
+        }}
+      />
+      <RegisterUserModal
+        open={showRegisterModal}
+        roles={roles}
+        onClose={() => setShowRegisterModal(false)}
       />
     </div>
   );

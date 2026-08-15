@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiPost } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
 
 function LoginForm() {
@@ -28,23 +27,60 @@ function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const data = await apiPost("/account/login", {
-        email,
-        pin: password,
+      const res = await fetch("/api-proxy/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+        body: JSON.stringify({ email, password }),
       });
-      saveAuth({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        clientId: data.clientId,
-      });
-      if (data.twoFactorEnabled) {
-        sessionStorage.setItem("tuma_2fa_email", email);
-        router.push("/verify-otp");
-      } else {
-        router.push("/dashboard");
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message ?? "Something went wrong.");
+        return;
+      }
+
+      switch (data.status) {
+        case "SUCCESS":
+          saveAuth({
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            clientId: data.userId,
+          });
+          router.push("/dashboard");
+          break;
+        case "PASSWORD_CHANGE_REQUIRED":
+          sessionStorage.setItem("tuma_reset_email", email);
+          router.push("/change-password");
+          break;
+        case "TWO_FACTOR_REQUIRED":
+          sessionStorage.setItem("tuma_2fa_email", email);
+          sessionStorage.setItem("tuma_2fa_userId", String(data.userId));
+          router.push("/verify-otp");
+          break;
+        case "EMAIL_NOT_VERIFIED":
+          sessionStorage.setItem("tuma_verify_email", email);
+          sessionStorage.setItem("tuma_verify_userId", String(data.userId));
+          router.push("/verify-email");
+          break;
+        case "ACCOUNT_LOCKED":
+          setError(
+            "Your account has been locked. Please contact your administrator.",
+          );
+          break;
+        case "ACCOUNT_DISABLED":
+          setError(
+            "Your account has been disabled. Please contact your administrator.",
+          );
+          break;
+        default:
+          setError(data.message ?? "Something went wrong. Please try again.");
       }
     } catch (err: any) {
-      setError(err.message ?? "Invalid credentials. Please try again.");
+      setError(
+        "Failed to connect. Please check your connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -182,25 +218,14 @@ function LoginForm() {
               </div>
             )}
 
-            {/* 2FA notice */}
-            <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
-              <svg
-                className="shrink-0 mt-0.5 text-blue-600"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+            {/* Forgot password */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => router.push("/forgot-password")}
+                className="text-xs text-blue-700 font-semibold hover:underline transition"
               >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <p className="text-xs text-blue-700 leading-relaxed">
-                For first time users, a temporary password will be sent to your
-                email. You will be prompted to change it upon first login.
-              </p>
+                Forgot password?
+              </button>
             </div>
 
             {/* Submit */}

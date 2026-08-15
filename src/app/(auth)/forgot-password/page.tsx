@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function FirstLoginPage() {
+export default function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,13 +26,10 @@ export default function FirstLoginPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      console.log("Response status:", res.status);
-      console.log("Response data:", data);
       if (!res.ok) {
-        setError(data.message ?? "Failed to send temporary password.");
+        setError(data.message ?? "Failed to send reset email.");
         return;
       }
-      sessionStorage.setItem("tuma_reset_email", email);
       setSent(true);
     } catch {
       setError("Failed to connect. Please try again.");
@@ -56,7 +53,7 @@ export default function FirstLoginPage() {
             <div className="flex items-center gap-2 mt-1">
               <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
               <span className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">
-                Account Setup
+                Password Reset
               </span>
             </div>
           </div>
@@ -73,17 +70,17 @@ export default function FirstLoginPage() {
                   stroke="#1a3de4"
                   strokeWidth="2"
                 >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
               </div>
 
               <h2 className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">
-                First Time Here?
+                Forgot Password?
               </h2>
               <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-                Enter your work email and we'll send you a temporary password to
-                get started.
+                Enter your work email and we'll send you a link to reset your
+                password.
               </p>
 
               <div className="space-y-5">
@@ -99,7 +96,7 @@ export default function FirstLoginPage() {
                       setError("");
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                    placeholder="you@tuma.com"
+                    placeholder="operator@tuma.com"
                     className="w-full px-4 py-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
                   />
                 </div>
@@ -122,26 +119,6 @@ export default function FirstLoginPage() {
                     <p className="text-xs text-red-600">{error}</p>
                   </div>
                 )}
-
-                <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
-                  <svg
-                    className="shrink-0 mt-0.5 text-blue-600"
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    A temporary password will be sent to your email. You'll be
-                    asked to set a permanent password on first login.
-                  </p>
-                </div>
 
                 <button
                   onClick={handleSubmit}
@@ -168,7 +145,7 @@ export default function FirstLoginPage() {
                     </>
                   ) : (
                     <>
-                      Send Temporary Password
+                      Send Reset Link
                       <svg
                         width="16"
                         height="16"
@@ -185,7 +162,7 @@ export default function FirstLoginPage() {
                 </button>
 
                 <p className="text-center text-sm text-slate-500">
-                  Already have an account?{" "}
+                  Remembered your password?{" "}
                   <button
                     onClick={() => router.push("/login")}
                     className="text-blue-700 font-semibold hover:underline transition"
@@ -215,7 +192,7 @@ export default function FirstLoginPage() {
                 Check Your Email
               </h2>
               <p className="text-slate-500 text-sm leading-relaxed mb-2">
-                A temporary password has been sent to
+                We've sent a password reset link to
               </p>
               <p className="font-bold text-slate-800 text-sm mb-8">{email}</p>
 
@@ -234,13 +211,12 @@ export default function FirstLoginPage() {
                     <line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                   <p className="text-[11px] font-bold text-amber-700 uppercase tracking-widest">
-                    Next Steps
+                    Note
                   </p>
                 </div>
                 <p className="text-xs text-amber-700 leading-relaxed">
-                  Log in with the temporary password sent to your email. You
-                  will be prompted to set a permanent password before accessing
-                  the platform.
+                  The reset link expires after a short time. If you don't see
+                  the email, check your spam folder.
                 </p>
               </div>
 
@@ -251,18 +227,7 @@ export default function FirstLoginPage() {
                   background: "linear-gradient(135deg, #1a3de4, #1230b8)",
                 }}
               >
-                Go to Login
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
+                Back to Login
               </button>
 
               <button
