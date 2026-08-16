@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { apiGet, apiPut } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
-const BASE_IMAGE_URL = "https://dev.tuma-tz.app";
+ const BASE_IMAGE_URL = "https://api.tuma-tz.app";
+//const BASE_IMAGE_URL = process.env.NEXT_PUBLIC_BASE_IMAGE_URL;
 
 const STATUS_OPTIONS = [
   {
